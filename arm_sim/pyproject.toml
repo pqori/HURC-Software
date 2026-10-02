@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yam-sim"
+version = "0.1.0"
+description = "MuJoCo physics simulation of the I2RT YAM arm with the i2rt Robot API (sim-to-real drop-in)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# mujoco/numpy/pyyaml come from conda-forge in the pixi env; listed here for pip users.
+dependencies = ["mujoco>=3.3.5", "numpy>=1.26", "pyyaml>=6"]
+
+[project.scripts]
+yam-sim = "yam_sim.scripts.run_sim:main"
+
+[tool.setuptools.packages.find]
+include = ["yam_sim*"]
+
+[tool.setuptools.package-data]
+yam_sim = ["models/**/*", "models/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

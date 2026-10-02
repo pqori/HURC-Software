@@ -1,0 +1,26 @@
+[workspace]
+name = "yam-arm-sim"
+version = "0.1.0"
+description = "MuJoCo physics simulation of the I2RT YAM arm exposing the i2rt Robot API"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[dependencies]
+python = "3.11.*"
+mujoco = ">=3.3.5"
+numpy = ">=1.26"
+pyyaml = ">=6"
+pytest = ">=8"
+
+[pypi-dependencies]
+yam-sim = { path = ".", editable = true }
+
+[tasks]
+test = "pytest -q"
+sim = "mjpython -m yam_sim.scripts.run_sim"
+teleop = "python -m yam_sim.scripts.teleop_keyboard"
+render = "python -m yam_sim.scripts.render_poses"
+smoke = "python -m yam_sim.scripts.smoke_test"
+go-to = "python -m yam_sim.scripts.go_to"
+play = "python -m yam_sim.scripts.play_trajectory"
+sliders = "python -m yam_sim.scripts.slider_panel"
