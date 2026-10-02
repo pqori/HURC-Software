@@ -1,0 +1,57 @@
+# Native ROS 2 Humble environment for the YAM arm MuJoCo sim <-> ROS bridge,
+# built on RoboStack. Primary target: Apple Silicon Macs; also solves for
+# linux-64. The physics sim itself (arm_sim/, python package yam_sim) is
+# installed editable from ../arm_sim, so changes there are picked up live.
+#
+#   pixi install          # one-time
+#   pixi run build        # colcon build of yam_description + yam_sim_ros (at the repo root)
+#   pixi run bridge       # MuJoCo sim + bridge + robot_state_publisher, headless
+#   pixi run view         # same, plus rviz2
+#   pixi run test         # headless integration test (FollowJointTrajectory + TF vs MuJoCo FK)
+
+[workspace]
+name = "yam-sim-ros"
+description = "ROS 2 Humble bridge for the I2RT YAM MuJoCo simulation, via pixi + RoboStack"
+channels = ["https://prefix.dev/robostack-staging", "conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[dependencies]
+# ROS 2 core + tools
+ros-humble-ros-base = "*"
+ros-humble-xacro = "*"
+ros-humble-robot-state-publisher = "*"
+ros-humble-joint-state-publisher-gui = "*"
+ros-humble-rviz2 = "*"
+ros-humble-control-msgs = "*"
+ros-humble-tf2-ros = "*"
+ros-humble-tf2-ros-py = "*"
+
+# Build toolchain
+colcon-common-extensions = "*"
+compilers = "*"
+cmake = "*"
+make = "*"
+ninja = "*"
+pkg-config = "*"
+
+# MuJoCo sim (arm_sim / yam_sim) and tests
+mujoco = "*"
+numpy = "*"
+pyyaml = "*"
+# pytest 9 removed the `path` hook argument that ros-humble-launch-testing's plugin uses
+pytest = "<9"
+
+[pypi-dependencies]
+yam-sim = { path = "../arm_sim", editable = true }
+
+[activation.env]
+# Keep this workspace's ROS traffic off other machines on the LAN.
+ROS_LOCALHOST_ONLY = "1"
+
+[tasks]
+# colcon runs at the repository root (build/ install/ log/ there are gitignored).
+build = "bash -c 'cd .. && colcon build --symlink-install --packages-select yam_description yam_sim_ros --cmake-args -DBUILD_TESTING=OFF'"
+bridge = "bash -c 'cd .. && source install/setup.bash && ros2 launch yam_sim_ros sim_bridge.launch.py rviz:=false'"
+view = "bash -c 'cd .. && source install/setup.bash && ros2 launch yam_sim_ros sim_bridge.launch.py rviz:=true'"
+test = "bash -c 'cd .. && source install/setup.bash && python -m pytest -v yam_sim_ros/test'"
+clean = "bash -c 'cd .. && rm -rf build/yam_description build/yam_sim_ros install/yam_description install/yam_sim_ros'"

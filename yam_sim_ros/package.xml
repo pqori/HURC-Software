@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>yam_sim_ros</name>
+  <version>0.1.0</version>
+  <description>
+    ROS 2 bridge for the I2RT YAM arm. It drives the MuJoCo simulation (python
+    package yam_sim from arm_sim/) or the real arm (i2rt) through the i2rt Robot
+    API, and exposes /joint_states plus the yam_arm_controller /
+    yam_gripper_controller interfaces from yam_description.
+  </description>
+  <maintainer email="rover@example.com">Rover Team</maintainer>
+  <license>BSD</license>
+
+  <!-- yam_sim (arm_sim/) and mujoco are plain Python packages, installed by
+       yam_sim_ros/pixi.toml, not rosdep keys. -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>yam_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>tf2_ros_py</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
