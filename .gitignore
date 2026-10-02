@@ -5,3 +5,10 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# colcon workspace output
+build/
+install/
+log/
+
+.DS_Store
