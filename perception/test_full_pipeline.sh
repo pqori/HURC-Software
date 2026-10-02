@@ -15,7 +15,7 @@ echo -e "${BLUE}╚════════════════════�
 echo ""
 
 # Source workspaces
-source /opt/ros/humble/setup.bash 2>/dev/null
+source /opt/ros/jazzy/setup.bash 2>/dev/null
 source ~/workspaces/ros2-ublox-zedf9p/install/setup.bash 2>/dev/null
 source ~/workspaces/rover/install/setup.bash 2>/dev/null
 

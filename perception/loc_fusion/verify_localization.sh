@@ -5,7 +5,7 @@ echo "🔍 Localization System Verification"
 echo "="*70
 echo ""
 
-source /opt/ros/humble/setup.bash 2>/dev/null
+source /opt/ros/jazzy/setup.bash 2>/dev/null
 
 # Check required nodes
 echo "📊 Checking Nodes..."

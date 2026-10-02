@@ -29,7 +29,7 @@ cd /home/rover/workspaces/rover-real
 
 # Source workspace
 echo -e "${BLUE}🔧 Sourcing workspace...${NC}"
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 
 # Launch camera if requested

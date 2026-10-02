@@ -3,6 +3,8 @@ When you first clone the repo, you need to build the base docker image. This wil
 ```bash
 make image
 ```
+The image is ROS 2 Jazzy on Ubuntu 24.04 (`osrf/ros:jazzy-desktop`); its Jazzy update has not yet been test-built, so report any build failures. The vendored micro-ROS sources in `uros/` are still copies of the upstream `humble` branches and should be replaced with the `jazzy` branches (not done yet; see the UNVERIFIED Jazzy commit message for details).
+
 This command takes a while, so you should only re-run it whenever new dependencies or setup commands are added to the project that would be annoying to re-run often. You can also run `make update` from inside the container to install/update any ros package dependencies without rebuilding the whole image (but these will not persist across creating new containers).
 
 Once the image is built, you can run the following command to open a shell in the development environment:

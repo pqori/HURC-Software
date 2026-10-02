@@ -28,7 +28,7 @@ echo -e "${GREEN}  ✓ GPS running${NC}"
 
 # 2. ZED
 echo -e "${YELLOW}[2/4] Starting ZED Camera (20 sec)...${NC}"
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source ~/workspaces/rover/install/setup.bash
 ros2 launch zed2i_launch zed2i_driver.launch.py > /tmp/zed_stack.log 2>&1 &
 sleep 20
@@ -36,7 +36,7 @@ echo -e "${GREEN}  ✓ ZED running${NC}"
 
 # 3. Localization
 echo -e "${YELLOW}[3/4] Starting Localization Fusion...${NC}"
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source ~/workspaces/rover/install/setup.bash
 
 # Launch gnss_launch components first

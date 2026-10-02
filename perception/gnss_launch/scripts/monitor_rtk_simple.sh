@@ -1,7 +1,7 @@
 #!/bin/bash
 # Simple RTK Monitor - just shows the key fields
 
-source /opt/ros/humble/setup.bash 2>/dev/null
+source /opt/ros/jazzy/setup.bash 2>/dev/null
 
 echo "🛰️  RTK Monitor (Press Ctrl+C to stop)"
 echo "========================================================================"

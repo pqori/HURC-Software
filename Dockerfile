@@ -1,6 +1,11 @@
-FROM osrf/ros:humble-desktop
+# ROS 2 Jazzy (Ubuntu 24.04 Noble). On a JetPack 6 Jetson (Ubuntu 22.04 host)
+# run this as a 24.04 container; Jazzy has no 22.04 packages.
+FROM osrf/ros:jazzy-desktop
 
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# Ubuntu 24.04 images ship a default "ubuntu" user with UID 1000; remove it so
+# "rover" keeps UID 1000 (as on the 22.04 image) and matches the bind mount.
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi
 RUN useradd -m -s /bin/bash -G sudo rover
 
 USER rover
@@ -12,16 +17,16 @@ RUN /home/rover/bin/arduino-cli config init --additional-urls https://www.pjrc.c
 RUN /home/rover/bin/arduino-cli core install teensy:avr@1.57.3
 
 WORKDIR /tmp
-ADD --chown=rover https://github.com/micro-ROS/micro_ros_arduino/archive/refs/tags/v2.0.7-humble.tar.gz /tmp/micro_ros_arduino.tar.gz
+ADD --chown=rover https://github.com/micro-ROS/micro_ros_arduino/archive/refs/tags/v2.0.8-jazzy.tar.gz /tmp/micro_ros_arduino.tar.gz
 RUN tar -xzf micro_ros_arduino.tar.gz
-RUN mv micro_ros_arduino-2.0.7-humble /home/rover/.arduino15/packages/teensy/hardware/avr/1.57.3/libraries/micro_ros_arduino
+RUN mv micro_ros_arduino-2.0.8-jazzy /home/rover/.arduino15/packages/teensy/hardware/avr/1.57.3/libraries/micro_ros_arduino
 
 ADD --chown=rover https://github.com/SolidGeek/VescUart/archive/refs/heads/master.tar.gz /tmp/vesc_uart.tar.gz
 RUN tar -xzf vesc_uart.tar.gz
 RUN mv VescUart-master /home/rover/.arduino15/packages/teensy/hardware/avr/1.57.3/libraries/VescUart
 
 RUN sudo apt-get update && sudo apt-get install -y zstd
-ADD --chown=rover https://download.stereolabs.com/zedsdk/5.1/cu13/ubuntu22 /tmp/zed_sdk_installer.run
+ADD --chown=rover https://download.stereolabs.com/zedsdk/5.1/cu13/ubuntu24 /tmp/zed_sdk_installer.run
 RUN chmod +x zed_sdk_installer.run
 RUN sudo mkdir -p /etc/udev/rules.d/
 RUN ./zed_sdk_installer.run -- silent skip_cuda
