@@ -1,0 +1,60 @@
+# Native (non-Docker) ROS 2 Humble environment for the rover simulator,
+# built on RoboStack. Primary target: Apple Silicon Macs; the lock file also
+# solves for linux-64, linux-aarch64 and osx-64. Linux users can
+# use it too, but the Dockerfile remains the reference for hardware work
+# (ZED SDK, RTAB-Map, Teensy toolchain are NOT available here).
+#
+#   pixi install          # one-time, downloads a few GB
+#   pixi run build        # colcon build of the sim packages only
+#   pixi run sim          # Gazebo (Fortress) + rviz2 + controllers
+#   pixi run sim-headless # same, server only, no GUI (CI / verification)
+#   pixi run teleop       # keyboard driving (run in a second terminal)
+
+[workspace]
+name = "hurc-rover-sim"
+description = "HURC rover Gazebo simulation via pixi + RoboStack (ROS 2 Humble)"
+channels = ["https://prefix.dev/robostack-staging", "conda-forge"]
+platforms = ["osx-arm64", "linux-64", "linux-aarch64", "osx-64"]
+
+[dependencies]
+# ROS 2 core + tools
+ros-humble-desktop = "*"
+ros-humble-xacro = "*"
+ros-humble-robot-state-publisher = "*"
+ros-humble-joint-state-publisher-gui = "*"
+ros-humble-teleop-twist-keyboard = "*"
+
+# Gazebo Fortress bridge and ros2_control integration
+ros-humble-ros-gz-sim = "*"
+ros-humble-ros-gz-bridge = "*"
+ros-humble-gz-ros2-control = "*"
+ros-humble-ros2-control = "*"
+ros-humble-controller-manager = "*"
+ros-humble-ros2-controllers = "*"   # diff_drive, position, JTC, JSB, ...
+
+# Autonomy and manipulation stacks (no RTAB-Map / ZED on macOS)
+ros-humble-navigation2 = "*"
+ros-humble-nav2-bringup = "*"
+ros-humble-robot-localization = "*"
+ros-humble-moveit = "*"
+
+# Build toolchain
+colcon-common-extensions = "*"
+compilers = "*"
+cmake = "*"
+make = "*"
+ninja = "*"
+pkg-config = "*"
+
+[activation.env]
+# Keep this workspace's ROS traffic off other machines on the LAN.
+ROS_LOCALHOST_ONLY = "1"
+
+[tasks]
+# Only the packages the simulator needs; the rest (ZED, micro-ROS, EPOS
+# hardware, firmware) need Linux-only SDKs and are built by the Dockerfile.
+build = "colcon build --symlink-install --packages-select rover_description rover_navigation rover_moveit_config --cmake-args -DBUILD_TESTING=OFF"
+sim = "bash scripts/pixi_sim.sh"
+sim-headless = "bash scripts/pixi_sim.sh headless:=true rviz:=false"
+teleop = "bash -c 'source install/setup.bash && ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/rover_drive_controller/cmd_vel_unstamped'"
+clean = "rm -rf build install log"

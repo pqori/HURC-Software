@@ -57,3 +57,6 @@ CATKIN_IGNORE
 .DS_Store
 
 .idea/
+
+# pixi (native macOS/Linux sim environment); pixi.toml and pixi.lock are committed
+.pixi/
