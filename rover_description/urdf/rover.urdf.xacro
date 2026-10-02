@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="HURCRover">
+  <xacro:arg name="use_gazebo" default="false" />
+
+  <!-- Import RRBot ros2_control description -->
+  <xacro:include filename="rover.control.xacro" />
+
+  <link name="base_link"/>
+  <joint name="base_to_chassis" type="fixed">
+    <parent link="base_link"/>
+    <child link="Chassis"/>
+    <!-- Orient rover to face along +X axis -->
+    <origin xyz="0 0 0" rpy="0 0 -1.5708"/>
+  </joint>
+  <link name="Chassis">
+    <inertial>
+      <origin
+        xyz="0.00168928999261721 -0.158972316895878 -0.0263689177365347"
+        rpy="0 0 0" />
+      <mass
+        value="12.658216779089" />
+      <inertia
+        ixx="0.150596570985256"
+        ixy="-4.14285882266353E-06"
+        ixz="3.54357306838098E-05"
+        iyy="0.18286046060099"
+        iyz="-0.000914184313067171"
+        izz="0.0850029361287568" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/fine/Chassis.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Chassis.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="FL_Wheel">
+    <inertial>
+      <origin
+        xyz="1.95282813253428E-08 -2.62573029127799E-06 -0.07484972247474"
+        rpy="0 0 0" />
+      <mass
+        value="0.873939787627142" />
+      <inertia
+        ixx="0.00234204215627105"
+        ixy="5.68590720513573E-10"
+        ixz="1.38700411244319E-10"
+        iyy="0.00234208699255669"
+        iyz="5.58806787139934E-08"
+        izz="0.00388526300187164" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/FL_Wheel.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/FL_Wheel.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="FL_Drive"
+    type="continuous">
+    <origin
+      xyz="-0.31401 0.38369 -0.43291"
+      rpy="1.5708 1.1883 1.5708" />
+    <parent
+      link="Chassis" />
+    <child
+      link="FL_Wheel" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link name="FR_Wheel">
+    <inertial>
+      <origin
+        xyz="1.94997462066304E-08 -2.62575286208433E-06 -0.0748497226295229"
+        rpy="0 0 0" />
+      <mass
+        value="0.873939793039095" />
+      <inertia
+        ixx="0.00234204215676138"
+        ixy="5.68361235432326E-10"
+        ixz="1.38110086190769E-10"
+        iyy="0.0023420869970853"
+        iyz="5.5880223943251E-08"
+        izz="0.00388526300520071" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/FR_Wheel.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/FR_Wheel.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="FR_Drive"
+    type="continuous">
+    <origin
+      xyz="0.31401 0.41591 -0.40472"
+      rpy="1.5708 0.0093406 -1.5708" />
+    <parent
+      link="Chassis" />
+    <child
+      link="FR_Wheel" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link name="BL_Wheel">
+    <inertial>
+      <origin
+        xyz="1.94281163934384E-08 -2.6257791464479E-06 -0.0748497224677374"
+        rpy="0 0 0" />
+      <mass
+        value="0.873939787289009" />
+      <inertia
+        ixx="0.00234204215628435"
+        ixy="5.69100093873037E-10"
+        ixz="1.37525855724566E-10"
+        iyy="0.00234208699183033"
+        iyz="5.58799202746783E-08"
+        izz="0.00388526300128025" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/BL_Wheel.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/BL_Wheel.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="BL_Drive"
+    type="continuous">
+    <origin
+      xyz="-0.31401 -0.41591 -0.40472"
+      rpy="1.5708 1.1883 1.5708" />
+    <parent
+      link="Chassis" />
+    <child
+      link="BL_Wheel" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link name="BR_Wheel">
+    <inertial>
+      <origin
+        xyz="1.94918969853575E-08 -2.62576167858741E-06 -0.0748497226507075"
+        rpy="0 0 0" />
+      <mass
+        value="0.873939793826414" />
+      <inertia
+        ixx="0.00234204215759053"
+        ixy="5.68731272641073E-10"
+        ixz="1.38055111004945E-10"
+        iyy="0.00234208699754974"
+        iyz="5.58801628218165E-08"
+        izz="0.00388526300614548" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/BR_Wheel.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/BR_Wheel.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="BR_Drive"
+    type="continuous">
+    <origin
+      xyz="0.31401 -0.38369 -0.43291"
+      rpy="1.5708 0.0093406 -1.5708" />
+    <parent
+      link="Chassis" />
+    <child
+      link="BR_Wheel" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link name="Arm_Base">
+    <inertial>
+      <origin
+        xyz="0.00231535938813487 -0.063182915348583 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.822766283240763" />
+      <inertia
+        ixx="0.00199820939503655"
+        ixy="-1.94243936220711E-06"
+        ixz="5.93749351137532E-20"
+        iyy="0.00249227479122682"
+        iyz="-8.48065790239697E-21"
+        izz="0.00118952625865389" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Base.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Base.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Base_Rotate"
+    type="continuous">
+    <origin
+      xyz="0 0.42545 0"
+      rpy="1.5708 0 0" />
+    <parent
+      link="Chassis" />
+    <child
+      link="Arm_Base" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.3562"
+      upper="2.3562"
+      velocity="0.25"
+      effort="120.0"
+      />
+  </joint>
+  <link name="Arm_Stage_1">
+    <inertial>
+      <origin
+        xyz="-0.00932925675991778 0.230723768048297 0.000279877286389063"
+        rpy="0 0 0" />
+      <mass
+        value="5.88080144890254" />
+      <inertia
+        ixx="0.0220667557392015"
+        ixy="0.000116537779940254"
+        ixz="-6.19665979624523E-06"
+        iyy="0.0067419940928024"
+        iyz="-2.00335742335522E-08"
+        izz="0.0195411746034503" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Shoulder"
+    type="continuous">
+    <origin
+      xyz="0 -0.010001 0"
+      rpy="0 0 0" />
+    <parent
+      link="Arm_Base" />
+    <child
+      link="Arm_Stage_1" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-1.5708"
+      upper="1.0472"
+      velocity="0.25"
+      effort="400.0"
+      />
+  </joint>
+  <link name="Arm_Stage_2">
+    <inertial>
+      <origin
+        xyz="0.0545421302279101 -0.00435126276325737 0.000107098498414171"
+        rpy="0 0 0" />
+      <mass
+        value="0.827525797499606" />
+      <inertia
+        ixx="0.000952420438527186"
+        ixy="-7.35977659969691E-05"
+        ixz="-3.46080175366685E-08"
+        iyy="0.000843686273208223"
+        iyz="-2.00905932364883E-08"
+        izz="0.00079563904395297" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Elbow_Tilt"
+    type="continuous">
+    <origin
+      xyz="0 0.52949 0"
+      rpy="0 3.1416 0" />
+    <parent
+      link="Arm_Stage_1" />
+    <child
+      link="Arm_Stage_2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-2.3562"
+      upper="2.3562"
+      velocity="0.5"
+      effort="100.0"
+      /> <!-- really vel should be 1.2 -->
+  </joint>
+  <link name="Arm_Stage_3">
+    <inertial>
+      <origin
+        xyz="-1.71823302769075E-05 0.0404549097731919 -0.00227416315353582"
+        rpy="0 0 0" />
+      <mass
+        value="1.40436366267213" />
+      <inertia
+        ixx="0.00143783491341466"
+        ixy="-1.91479372336167E-08"
+        ixz="-3.52862699186674E-10"
+        iyy="0.000966300635827921"
+        iyz="-7.06360004586942E-05"
+        izz="0.00144387619676786" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Elbow_Rotate"
+    type="continuous">
+    <origin
+      xyz="0.077851 0.19566 0"
+      rpy="3.1416 0 3.1416" />
+    <parent
+      link="Arm_Stage_2" />
+    <child
+      link="Arm_Stage_3" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.1416"
+      upper="3.1416"
+      velocity="0.5"
+      effort="25.0"
+      /> <!-- really vel should be 1.2 -->
+  </joint>
+  <link name="Arm_Stage_4">
+    <inertial>
+      <origin
+        xyz="-3.1954744406093E-11 0.00453871939891309 2.25947057398423E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.319599097984612" />
+      <inertia
+        ixx="8.94739923614755E-05"
+        ixy="1.51302692742037E-08"
+        ixz="2.83465023857246E-08"
+        iyy="8.61146995925486E-05"
+        iyz="-4.55569652401225E-08"
+        izz="6.48156460256519E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Stage_4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Wrist_Tilt"
+    type="continuous">
+    <origin
+      xyz="0 0.12103 0"
+      rpy="0 0 0" />
+    <parent
+      link="Arm_Stage_3" />
+    <child
+      link="Arm_Stage_4" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      velocity="0.5"
+      effort="25.0"
+      /> <!-- really vel should be 1.2 -->
+  </joint>
+  <link name="Arm_Gripper">
+    <inertial>
+      <origin
+        xyz="-5.88146974289661E-06 0.155962088414063 -8.63752613500246E-06"
+        rpy="0 0 0" />
+      <mass
+        value="1.04264809153308" />
+      <inertia
+        ixx="0.000885741337846628"
+        ixy="8.84210021122137E-08"
+        ixz="3.88765568354304E-08"
+        iyy="0.000214251750868503"
+        iyz="-5.10583021785286E-08"
+        izz="0.000937870136231767" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Gripper.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rover_description/meshes/coarse/Arm_Gripper.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Arm_Wrist_Rotate"
+    type="continuous">
+    <origin
+      xyz="0 0.01 0"
+      rpy="3.1416 0 3.1416" />
+    <parent
+      link="Arm_Stage_4" />
+    <child
+      link="Arm_Gripper" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.1416"
+      upper="3.1416"
+      velocity="0.5"
+      effort="25.0"
+      /> <!-- really vel should be 1.2 -->
+  </joint>
+  <link name="tcp_link" />
+  <joint name="gripper_to_tcp" type="fixed">
+    <parent link="Arm_Gripper"/>
+    <child link="tcp_link"/>
+    <origin xyz="0 0.3 0" rpy="0 0 0"/>
+  </joint>
+  <link name="dummy_gripper_link" />
+  <joint name="Arm_Gripper_Clamp" type="continuous">
+    <parent link="tcp_link" />
+    <child link="dummy_gripper_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <xacro:rover_ros2_control use_gazebo="$(arg use_gazebo)"/>
+
+  <xacro:if value="$(arg use_gazebo)">
+    <!-- ros_control plugin -->
+    <gazebo>
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>$(find rover_description)/config/rover_controllers.yaml</parameters>
+      </plugin>
+
+      <!-- Should probably optimize the collision shapes in the future -->
+      <self_collide>true</self_collide>
+    </gazebo>
+  </xacro:if>
+  <xacro:unless value="$(arg use_gazebo)">
+    <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro"/>
+    <xacro:zed_camera name="Front_Zed" model="zed2i" enable_gnss="false">
+      <gnss_origin/>
+    </xacro:zed_camera>
+    <joint name="Front_Zed_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="Front_Zed_camera_link"/>
+      <origin
+        xyz="0.55 0 -0.18"
+        rpy="0 0 0"
+      />
+    </joint>
+  </xacro:unless>
+</robot>

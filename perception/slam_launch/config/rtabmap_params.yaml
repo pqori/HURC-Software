@@ -1,0 +1,19 @@
+
+Mem/IncrementalMemory:          true     # build the map as we go
+RGBD/LoopClosureDetection:      true
+RGBD/OptimizeFromGraphEnd:      true
+RGBD/NeighborLinkRefining:      true
+
+RGBD/LinearUpdate:              0.50
+RGBD/AngularUpdate:             0.80
+
+Odom/Strategy:                  0
+
+Grid/FromDepth:                 true
+Grid/CellSize:                  0.05
+Grid/RangeMax:                  15.0
+Grid/MinClusterSize:            20
+Grid/DepthDecimation:           4
+
+queue_size:                     10
+approx_sync:                    true

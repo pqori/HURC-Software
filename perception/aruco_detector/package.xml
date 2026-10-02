@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>aruco_detector</name>
+  <version>1.0.0</version>
+  <description>Production ArUco marker detector with ZED SDK integration and ROS 2 interface</description>
+
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Djordje Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build -->
+  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core ROS 2 dependencies -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>rclcpp_components</exec_depend>
+  
+  <!-- Message types -->
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>vision_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  
+  <!-- Image and TF -->
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  
+  <!-- Time synchronization -->
+  <exec_depend>message_filters</exec_depend>
+  
+  <!-- Diagnostics -->
+  <exec_depend>diagnostic_updater</exec_depend>
+  
+  <!-- Python dependencies (via pip) -->
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+
+  <!-- Testing -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

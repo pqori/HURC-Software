@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>zed2i_launch</name>
+  <version>0.1.0</version>
+  <description>Launch wrapper and tuned params for the Stereolabs ZED 2i camera.</description>
+
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Djordje Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>zed_wrapper</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

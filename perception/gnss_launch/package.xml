@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>gnss_launch</name>
+  <version>0.1.0</version>
+  <description>Launch wrapper and params for the GNSS receiver.</description>
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Dorde Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  
+  <exec_depend>ublox_gps</exec_depend>
+  <exec_depend>nmea_navsat_driver</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+</package>

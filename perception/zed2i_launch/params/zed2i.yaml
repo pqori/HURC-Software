@@ -1,0 +1,32 @@
+general:
+  camera_model: "zed2i"
+  grab_frame_rate: 30
+
+video:
+  # 0=2K,1=1080p,2=720p,3=VGA
+  resolution: 2
+
+depth:
+   # PERFORMANCE | QUALITY | ULTRA
+  depth_mode: "ULTRA"
+  min_depth: 0.2
+
+pos_tracking:
+  enable: true
+  publish_tf: false
+
+sensors:
+  imu_pub_rate: 200.0
+
+point_cloud:
+  enable: true
+  pub_frequency: 10.0
+  format: "XYZRGBA"
+
+# this shall be switched to 'true' when we focus on object detection segment of the mission
+object_detection:
+  enable: false  # Disable object detection for now to avoid configuration issues
+  model: "HUMAN_BODY_FAST"
+  enable_tracking: true
+  tracking_confidence_threshold: 30
+  object_class_filter: [ "PERSON" ] # adjust for the objects we want to focus on

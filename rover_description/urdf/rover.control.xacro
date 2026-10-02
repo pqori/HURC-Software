@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="rover_ros2_control" params="use_gazebo:=^|false">
+
+    <ros2_control name="RoverDrive" type="system">
+      <hardware>
+        <xacro:if value="${use_gazebo}">
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo}">
+          <plugin>rover_hardware/TopicDriveSystem</plugin>
+        </xacro:unless>
+      </hardware>
+
+      <joint name="FL_Drive">
+        <command_interface name="velocity"/>
+        <state_interface name="velocity"/>
+        <state_interface name="position"/>
+        <param name="is_left_wheel">true</param>
+      </joint>
+      <joint name="FR_Drive">
+        <command_interface name="velocity"/>
+        <state_interface name="velocity"/>
+        <state_interface name="position"/>
+        <param name="is_left_wheel">false</param>
+      </joint>
+      <joint name="BL_Drive">
+        <command_interface name="velocity"/>
+        <state_interface name="velocity"/>
+        <state_interface name="position"/>
+        <param name="is_left_wheel">true</param>
+      </joint>
+      <joint name="BR_Drive">
+        <command_interface name="velocity"/>
+        <state_interface name="velocity"/>
+        <state_interface name="position"/>
+        <param name="is_left_wheel">false</param>
+      </joint>
+    </ros2_control>
+
+    <ros2_control name="RoverArmEPOS" type="system">
+      <hardware>
+        <xacro:if value="${use_gazebo}">
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo}">
+          <plugin>rover_hardware/HybridArmSystem</plugin>
+        </xacro:unless>
+      </hardware>
+
+      <!-- <joint name="Arm_Base_Rotate">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+      </joint> -->
+      <joint name="Arm_Shoulder">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">1</param>
+        <param name="position_target_scale">-12862.5</param> <!-- 66*4.54545454545454*42.875 (66 = 11 * 6) -->
+      </joint>
+      <joint name="Arm_Elbow_Tilt">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">2</param>
+        <param name="position_target_scale">-2829.75</param> <!-- 66*42.875 -->
+      </joint>
+      <joint name="Arm_Elbow_Rotate">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">3</param>
+        <param name="position_target_scale">175616.0</param> <!-- 4096*42.875 -->
+      </joint>
+      <joint name="Arm_Wrist_Tilt">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">4</param>
+        <param name="position_target_scale">175616.0</param>
+        <param name="differential_index">0</param>
+      </joint>
+      <joint name="Arm_Wrist_Rotate">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">5</param>
+        <param name="position_target_scale">175616.0</param>
+        <param name="differential_index">1</param>
+      </joint>
+      <joint name="Arm_Gripper_Clamp">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="epos_node_id">6</param>
+        <param name="position_target_scale">76832.0</param> <!-- 4096*42.875*(7/16) -->
+      </joint>
+    </ros2_control>
+
+    <ros2_control name="RoverArmSteppers" type="system">
+      <hardware>
+        <xacro:if value="${use_gazebo}">
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo}">
+          <plugin>rover_hardware/StepperSystem</plugin>
+        </xacro:unless>
+      </hardware>
+
+      <joint name="Arm_Base_Rotate">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <command_interface name="position"/>
+        <!-- <command_interface name="velocity"/> -->
+        <param name="topic_name">base_rotate</param>
+        <param name="tick_resolution">-80000.0</param>
+      </joint>
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

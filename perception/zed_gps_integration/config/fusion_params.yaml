@@ -1,0 +1,20 @@
+/**:
+  ros__parameters:
+    # ZED Camera Configuration
+    camera_sn: 0  # 0 = auto-detect, or specific serial number
+    camera_resolution: 'HD1080'  # HD2K, HD1080, HD720
+    
+    # GNSS Topic
+    gnss_topic: '/gps/fix'
+    
+    # Calibration Parameters
+    target_yaw_uncertainty: 0.1  # radians (~5.7 degrees)
+    target_translation_uncertainty: 0.15  # meters
+    enable_reinitialization: true
+    gnss_vio_reinit_threshold: 5.0  # meters - trigger recalibration if divergence exceeds
+    
+    # Publishing Options
+    publish_tf: true
+    publish_path: true
+    path_max_length: 1000  # Maximum poses in path visualization
+

@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    # Map data directory (files for web visualization)
+    map_data_dir: '~/zed_map_data'
+    
+    # Topic subscriptions
+    fused_topic: '/zed_gnss_fusion/geo_pose'
+    raw_gnss_topic: '/gps/fix'
+

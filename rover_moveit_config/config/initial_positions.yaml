@@ -1,0 +1,9 @@
+# Default initial positions for HURCRover's ros2_control fake system
+
+initial_positions:
+  Arm_Base_Rotate: 0
+  Arm_Elbow_Rotate: 0
+  Arm_Elbow_Tilt: 0
+  Arm_Shoulder: 0
+  Arm_Wrist_Rotate: 0
+  Arm_Wrist_Tilt: 0

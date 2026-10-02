@@ -1,0 +1,12 @@
+# path to exported ONNX model (will be resolved by launch file)
+model_path:     "model/model.onnx"
+
+# list of classes (will be resolved by launch file)
+classes_file:   "model/classes.txt"
+
+# minimum confidence to accept a detection
+confidence_threshold: 0.5
+
+# topic names
+image_topic:    /zed2i/left/image_rect_color
+output_topic:   /detected_objects

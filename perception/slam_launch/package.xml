@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>slam_launch</name>
+  <version>0.1.0</version>
+
+  <description>
+    Top-level launch wrapper that boots the entire perception chain:
+      - zed2i_launch  - ZED 2i camera / depth / IMU driver
+      - loc_fusion    - dual EKF + GPS to map and odom TF
+      - RTAB-Map      - RGB-D SLAM to global 3-D cloud and /map occupancy grid
+  </description>
+
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Dorde Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>zed2i_launch</exec_depend>
+  <exec_depend>loc_fusion</exec_depend>
+  <exec_depend>rtabmap_launch</exec_depend>
+  <exec_depend>rtabmap_ros</exec_depend>
+  <exec_depend>pointcloud_tools</exec_depend>
+  <exec_depend>object_detection</exec_depend>
+  <exec_depend>aruco_detector</exec_depend>
+  <exec_depend>detection_pose_estimator</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>scipy</exec_depend>
+  <exec_depend>numpy</exec_depend>
+  <exec_depend>rover_description</exec_depend>
+  <exec_depend>zed_integration</exec_depend>
+</package>

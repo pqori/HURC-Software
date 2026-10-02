@@ -1,0 +1,3 @@
+[submodule "base_station"]
+	path = base_station
+	url = https://github.com/andrewo3/rover_station

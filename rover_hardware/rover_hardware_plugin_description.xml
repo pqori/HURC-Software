@@ -1,0 +1,21 @@
+<library path="rover_hardware">
+
+    <class name="rover_hardware/TopicDriveSystem" type="rover_hardware::TopicDriveSystemHardware" base_class_type="hardware_interface::SystemInterface">
+        <description>
+            Send and monitor to left and right rpm topics
+        </description>
+    </class>
+
+    <class name="rover_hardware/HybridArmSystem" type="rover_hardware::HybridArmSystemHardware" base_class_type="hardware_interface::SystemInterface">
+        <description>
+            Controls both EPOS and stepper motors
+        </description>
+    </class>
+
+    <class name="rover_hardware/StepperSystem" type="rover_hardware::StepperSystemHardware" base_class_type="hardware_interface::SystemInterface">
+        <description>
+            Control stepper motors through a Teensy
+        </description>
+    </class>
+
+</library>

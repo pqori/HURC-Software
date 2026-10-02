@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ZED GNSS Global Localization</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        .status-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.6;
+            min-width: 300px;
+        }
+        
+        .status-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .status-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #2c3e50;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        
+        .status-good { color: #27ae60 !important; font-weight: 600; }
+        .status-warn { color: #f39c12 !important; font-weight: 600; }
+        .status-error { color: #e74c3c !important; font-weight: 600; }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 3px;
+            margin-right: 8px;
+        }
+        
+        .color-fused { background-color: #3498db; }
+        .color-raw { background-color: #f39c12; }
+        
+        .instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 350px;
+            font-size: 13px;
+        }
+        
+        .instructions-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .instructions p {
+            margin: 5px 0;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .emoji-marker {
+            background: none;
+            border: none;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="instructions" id="instructions">
+        <div class="instructions-title">🌍 ZED Global Localization</div>
+        <p>Move the camera to calibrate VIO/GNSS alignment.</p>
+        <p>Map will update when calibration completes.</p>
+        <p><small>Click to dismiss</small></p>
+    </div>
+    
+    <div class="status-panel">
+        <div class="status-title">System Status</div>
+        <div class="status-item">
+            <span class="status-label">Fused Position:</span>
+            <span class="status-value" id="fused-status">Waiting...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Raw GNSS:</span>
+            <span class="status-value" id="gnss-status">Waiting...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Fix Type:</span>
+            <span class="status-value" id="fix-type">-</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Last Update:</span>
+            <span class="status-value" id="last-update">-</span>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-title">Trajectories</div>
+        <div class="legend-item">
+            <div class="legend-color color-fused"></div>
+            <span>Fused VIO+GNSS (High Accuracy)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-raw"></div>
+            <span>Raw GNSS</span>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map
+        const map = L.map('map', {
+            center: [37.7749, -122.4194],  // Default: San Francisco
+            zoom: 18,
+            zoomControl: true
+        });
+
+        // Add tile layers
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 22
+        }).addTo(map);
+
+        const satelliteLayer = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            {
+                attribution: '© Esri',
+                maxZoom: 22
+            }
+        );
+
+        // Layer control
+        L.control.layers({
+            'Streets': streetLayer,
+            'Satellite': satelliteLayer
+        }).addTo(map);
+
+        // Scale
+        L.control.scale({ imperial: false }).addTo(map);
+
+        // Markers and paths
+        let fusedMarker = null;
+        let rawMarker = null;
+        let fusedPath = L.polyline([], { color: '#3498db', weight: 3, opacity: 0.8 }).addTo(map);
+        let rawPath = L.polyline([], { color: '#f39c12', weight: 2, opacity: 0.6 }).addTo(map);
+        let covarianceCircle = null;
+        
+        let firstUpdate = true;
+        let fusedCount = 0;
+        let rawCount = 0;
+
+        // Hide instructions on click
+        document.getElementById('instructions').addEventListener('click', function() {
+            this.style.display = 'none';
+        });
+
+        // Update fused position
+        function updateFused() {
+            fetch('data.txt?' + Date.now())
+                .then(r => r.text())
+                .then(data => {
+                    const [lat, lon, ts] = data.split(',').map(Number);
+                    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+                        const pos = [lat, lon];
+                        
+                        // Update or create marker
+                        if (!fusedMarker) {
+                            fusedMarker = L.marker(pos, {
+                                icon: L.divIcon({
+                                    html: '🔵',
+                                    className: 'emoji-marker',
+                                    iconSize: [30, 30]
+                                })
+                            }).addTo(map).bindPopup('<b>Fused Position</b><br>VIO + GNSS');
+                            
+                            // Pan to first position
+                            if (firstUpdate) {
+                                map.setView(pos, 19);
+                                firstUpdate = false;
+                                document.getElementById('instructions').style.display = 'none';
+                            }
+                        } else {
+                            fusedMarker.setLatLng(pos);
+                            map.panTo(pos);
+                        }
+                        
+                        // Add to path
+                        fusedPath.addLatLng(pos);
+                        fusedCount++;
+                        
+                        // Limit path length
+                        if (fusedCount > 500) {
+                            const latlngs = fusedPath.getLatLngs();
+                            fusedPath.setLatLngs(latlngs.slice(-500));
+                        }
+                        
+                        // Update status
+                        document.getElementById('fused-status').textContent = 
+                            `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                        document.getElementById('fused-status').className = 'status-value status-good';
+                        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                    }
+                })
+                .catch(e => {
+                    if (fusedCount === 0) {
+                        document.getElementById('fused-status').textContent = 'No data';
+                        document.getElementById('fused-status').className = 'status-value status-error';
+                    }
+                });
+        }
+
+        // Update raw GNSS
+        function updateRaw() {
+            fetch('raw_data.txt?' + Date.now())
+                .then(r => r.text())
+                .then(data => {
+                    const parts = data.split(',');
+                    const lat = Number(parts[0]);
+                    const lon = Number(parts[1]);
+                    const lon_std = Number(parts[3]);
+                    const lat_std = Number(parts[4]);
+                    const status = parts[6];
+                    
+                    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+                        const pos = [lat, lon];
+                        
+                        // Update or create marker
+                        if (!rawMarker) {
+                            rawMarker = L.marker(pos, {
+                                icon: L.divIcon({
+                                    html: '🟡',
+                                    className: 'emoji-marker',
+                                    iconSize: [25, 25]
+                                })
+                            }).addTo(map).bindPopup('<b>Raw GNSS</b><br>Direct GPS');
+                        } else {
+                            rawMarker.setLatLng(pos);
+                        }
+                        
+                        // Add to path
+                        rawPath.addLatLng(pos);
+                        rawCount++;
+                        
+                        // Limit path length
+                        if (rawCount > 500) {
+                            const latlngs = rawPath.getLatLngs();
+                            rawPath.setLatLngs(latlngs.slice(-500));
+                        }
+                        
+                        // Update covariance circle
+                        if (covarianceCircle) {
+                            map.removeLayer(covarianceCircle);
+                        }
+                        const radius = Math.max(lat_std, lon_std);
+                        covarianceCircle = L.circle(pos, {
+                            radius: radius,
+                            color: '#f39c12',
+                            fillColor: '#f39c12',
+                            fillOpacity: 0.1,
+                            weight: 1
+                        }).addTo(map);
+                        
+                        // Update status
+                        document.getElementById('gnss-status').textContent = 
+                            `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                        document.getElementById('gnss-status').className = 'status-value status-good';
+                        document.getElementById('fix-type').textContent = status || 'UNKNOWN';
+                        
+                        // Color code fix type
+                        const fixElem = document.getElementById('fix-type');
+                        if (status === 'RTK_FIX') {
+                            fixElem.className = 'status-value status-good';
+                        } else if (status === 'DGPS') {
+                            fixElem.className = 'status-value status-warn';
+                        } else {
+                            fixElem.className = 'status-value';
+                        }
+                    }
+                })
+                .catch(e => {
+                    if (rawCount === 0) {
+                        document.getElementById('gnss-status').textContent = 'No data';
+                        document.getElementById('gnss-status').className = 'status-value status-error';
+                    }
+                });
+        }
+
+        // Poll for updates
+        setInterval(updateFused, 100);   // 10 Hz for fused
+        setInterval(updateRaw, 1000);    // 1 Hz for raw GPS
+
+        // Initial load
+        updateFused();
+        updateRaw();
+    </script>
+</body>
+</html>
+

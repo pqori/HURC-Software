@@ -1,0 +1,45 @@
+# URC Mission Objects - Science Task
+rock
+mineral_sample
+biological_sample
+soil_sample
+plant
+lichen
+moss
+
+# URC Mission Objects - Equipment Retrieval
+bottle
+toolbox
+container
+drill
+hammer
+wrench
+cable
+rope
+battery
+solar_panel
+
+# URC Mission Objects - Navigation Markers
+flag
+post
+sign
+marker
+beacon
+gate
+checkpoint
+
+# URC Mission Objects - Obstacles & Structures
+large_rock
+boulder
+equipment_cache
+habitat_module
+rover
+antenna
+obstacle
+
+# URC Mission Objects - Autonomous Navigation
+person
+astronaut
+scientist
+backpack
+helmet

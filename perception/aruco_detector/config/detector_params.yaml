@@ -1,0 +1,31 @@
+/**:
+  ros__parameters:
+    # ArUco dictionary type
+    dictionary: "DICT_4X4_50"
+    
+    # Physical marker size (edge length in meters)
+    marker_size_m: 0.15
+    
+    # Detection parameters
+    min_side_px: 20                          # Minimum marker side in pixels
+    adaptive_thresh_win_size_min: 3          # Adaptive threshold min window
+    adaptive_thresh_win_size_max: 23         # Adaptive threshold max window
+    adaptive_thresh_win_size_step: 10        # Adaptive threshold step size
+    
+    # Topic names
+    rgb_topic: "/zed2i/left/image_rect_color"
+    cam_info_topic: "/zed2i/left/camera_info"
+    depth_topic: "/zed2i/depth/depth_registered"
+    
+    # Depth integration
+    use_depth: true                          # Enable depth sampling for distance
+    
+    # Output frame
+    output_frame: "zed2i_left_camera_optical_frame"
+    transform_to_base_link: false            # Transform detections to base_link
+    
+    # Visualization
+    publish_markers: true                    # Publish MarkerArray for RViz
+    
+    # Performance
+    max_fps: 30                              # Max processing rate (0 = unlimited)

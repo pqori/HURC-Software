@@ -1,0 +1,46 @@
+/**:
+  ros__parameters:
+    # Set to true if you are simulating in Gazebo
+    use_gazebo: false
+
+    # What type of commands to expect (unitless for joystick, or speed for direct velocity inputs)
+    command_in_type: "unitless"
+    
+    # The topic where Servo listens for the TwistStamped messages
+    cartesian_command_in_topic: ~/delta_twist_cmds
+    
+    # What type of controller we are sending commands to 
+    # Options: std_msgs/Float64MultiArray (for JointGroupVelocityController) 
+    #          trajectory_msgs/JointTrajectory (for JointTrajectoryController)
+    command_out_type: std_msgs/Float64MultiArray
+    
+    # The topic of your active ros2_control controller
+    command_out_topic: /rover_arm_controller/commands
+
+    # Publish rate to the robot (in Hz). Adjust based on your hardware's capability.
+    publish_period: 0.04  # 25 Hz
+
+    # What to control and what frame to control it in
+    move_group_name: manipulator      # CHANGE to your MoveIt planning group name
+    planning_frame: base_link         # CHANGE to your robot's base frame
+    ee_frame_name: tcp_link              # CHANGE to your end-effector frame
+    robot_link_command_frame: base_link # The frame the Twist commands are relative to
+
+    # Scaling factors (Limits maximum speed when pushing joystick all the way)
+    linear_command_scale_multiplier: 0.1  # Max linear velocity (meters/sec)
+    rotational_command_scale_multiplier: 0.2 # Max angular velocity (rad/sec)
+    joint_command_scale_multiplier: 0.1
+
+    # Collision checking rate
+    collision_check_rate: 10.0 # Hz
+    collision_check_type: threshold_distance
+    self_collision_proximity_threshold: 0.01 # Stop if this close to self
+    scene_collision_proximity_threshold: 0.02 # Stop if this close to environment
+
+    # Singularity handling
+    lower_singularity_threshold: 17.0  # Decelerate when approaching singularity
+    hard_stop_singularity_threshold: 30.0 # Stop completely
+    leaving_singularity_threshold_multiplier: 2.0 
+
+    # Smoothing (Low pass filter to prevent jerky motion)
+    smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"

@@ -1,0 +1,19 @@
+depth_to_scan:
+  frame_id: base_link
+  range_max: 12.0
+  fov_deg: 120.0
+  scan_height: 0.30
+  min_z: -0.1
+  max_z: 0.30
+  angular_res_deg: 1.0
+  pointcloud_topic: /zed2i/zed2i_camera/point_cloud/cloud_registered
+  scan_topic: /scan
+
+grid_builder:
+  frame_id: map
+  resolution: 0.05
+  size_xy:    20.0
+  z_thresh:   0.15          # points above this are obstacles
+  range_max:  15.0
+  cloud_topic: /zed2i/zed2i_camera/point_cloud/cloud_registered
+  grid_topic: /local_map

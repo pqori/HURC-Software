@@ -1,0 +1,116 @@
+# Navigation Integration Configuration
+# ==================================
+
+# Frame coordination
+frame_coordinator:
+  base_frame: "base_link"
+  odom_frame: "odom"
+  map_frame: "map"
+  camera_frame: "zed2i_left_camera_frame"
+  gnss_frame: "gnss_link"
+  monitor_frequency: 5.0
+
+# Topic coordination
+topic_coordinator:
+  map_source_priority: "hybrid"           # hybrid, rtabmap, zed_mapping
+  odom_source_priority: "ekf_local"       # ekf_local, ekf_global, zed_fusion
+  enable_topic_monitoring: true
+  conflict_resolution_timeout: 5.0
+
+# Nav2 integration bridge
+nav2_integration_bridge:
+  nav2_timeout: 30.0                      # Navigation timeout (seconds)
+  approach_distance_tolerance: 0.2        # Approach tolerance (meters)
+  enable_auto_navigation: true            # Auto-navigate to selected objects
+  
+  # Goal handling
+  object_goal_priority: 0.9               # Priority for object navigation goals
+  gps_goal_priority: 1.0                  # Priority for GPS waypoint goals
+  manual_goal_priority: 0.8               # Priority for manual goals
+
+# Sensor integration
+sensor_costmap_publisher:
+  # Input sources
+  zed_cloud_topic: "/zed2i/point_cloud/cloud_registered"
+  
+  # Output topics
+  output_scan_topic: "/scan"
+  output_cloud_topic: "/costmap_cloud"
+  
+  # Scan conversion parameters
+  scan_height_min: 0.1                    # Minimum obstacle height (meters)
+  scan_height_max: 2.0                    # Maximum obstacle height (meters)
+  scan_range_max: 10.0                    # Maximum scan range (meters)
+  scan_angle_min: -3.14159                # Minimum scan angle (radians)
+  scan_angle_max: 3.14159                 # Maximum scan angle (radians)
+  scan_resolution: 0.5                    # Angular resolution (degrees)
+  
+  # Performance settings
+  publish_rate: 15.0                      # Scan publish rate (Hz)
+  enable_cloud_filtering: true            # Filter point cloud for costmap
+
+# Navigation recovery
+navigation_recovery:
+  # Timeout thresholds
+  localization_timeout: 5.0               # Localization timeout (seconds)
+  mapping_timeout: 10.0                   # Mapping timeout (seconds)
+  sensor_timeout: 3.0                     # Sensor timeout (seconds)
+  
+  # Recovery settings
+  recovery_attempt_limit: 3               # Maximum recovery attempts
+  enable_auto_recovery: true              # Enable automatic recovery
+  recovery_backoff_time: 5.0             # Time between recovery attempts
+  
+  # Fallback strategies
+  enable_sensor_fallback: true            # Fallback to basic sensors
+  enable_localization_fallback: true     # Fallback to alternative localization
+  enable_mapping_fallback: true          # Fallback to cached maps
+  enable_emergency_stop: true            # Emergency stop on critical failures
+
+# Standardized parameters (synchronized across all modules)
+standardized_params:
+  # Grid parameters (used by all mapping components)
+  grid_resolution: 0.05                   # Standard grid resolution (meters)
+  grid_size: 2048                         # Standard grid size (cells)
+  
+  # Update rates (synchronized across components)
+  mapping_update_rate: 2.0                # Mapping update rate (Hz)
+  costmap_update_rate: 5.0               # Costmap update rate (Hz)
+  localization_rate: 50.0                # Localization rate (Hz)
+  
+  # Coordinate frames (standardized across system)
+  frames:
+    map: "map"                            # Global coordinate frame
+    odom: "odom"                          # Odometry frame
+    base_link: "base_link"                # Robot base frame
+    camera: "zed2i_left_camera_frame"     # Camera frame
+    gnss: "gnss_link"                     # GNSS antenna frame
+  
+  # Topic names (standardized across system)
+  topics:
+    map: "/map"                           # Occupancy grid map
+    odom: "/odometry/filtered"            # Filtered odometry
+    scan: "/scan"                         # Laser scan for Nav2
+    cmd_vel: "/cmd_vel"                   # Velocity commands
+    goal: "/goal_pose"                    # Navigation goals
+    
+  # Safety parameters
+  safety:
+    obstacle_height_threshold: 0.3        # Obstacle height threshold (meters)
+    safety_margin: 0.3                    # Safety margin around obstacles (meters)
+    emergency_stop_distance: 0.5         # Emergency stop distance (meters)
+
+# Localization switcher
+localization_switcher:
+  default_source: "ekf_local"             # Default localization source
+  auto_switch_enabled: true               # Enable automatic switching
+  global_quality_threshold: 0.8          # Threshold for switching to global
+  switch_hysteresis: 3.0                  # Minimum time between switches
+  localization_timeout: 5.0               # Timeout for localization sources
+
+# Nav2 parameter synchronization
+nav2_parameter_sync:
+  nav2_config_path: "/home/rover/workspaces/rover/src/navigation/global_nav/nav2_launch/config"
+  standardized_config_path: "/home/rover/workspaces/rover/src/perception/slam_launch/config/navigation_integration.yaml"
+  enable_auto_sync: true                  # Enable automatic parameter sync
+  sync_interval: 30.0                     # Auto-sync interval (seconds)

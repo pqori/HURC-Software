@@ -1,0 +1,76 @@
+# Perception Robustness and Error Handling Configuration
+# =====================================================
+
+perception_guardian:
+  # Auto-recovery settings
+  enable_auto_recovery: true
+  recovery_timeout: 30.0  # seconds
+  max_recovery_attempts: 3
+  
+  # System monitoring
+  quality_check_rate: 5.0  # Hz
+  min_operational_sensors: 2
+  degraded_mode_threshold: 0.6
+  
+  # Sensor timeouts
+  sensor_timeouts:
+    zed2i_camera: 2.0    # seconds
+    zed2i_imu: 1.0       # seconds  
+    gnss: 5.0            # seconds
+    odometry: 2.0        # seconds
+  
+  # Data quality thresholds
+  quality_thresholds:
+    motion_blur_max: 0.8      # 0-1, higher = more blur
+    lighting_min: 0.3         # 0-1, lower = too dark/bright
+    sharpness_min: 0.4        # 0-1, lower = less sharp
+    exposure_min: 0.5         # 0-1, lower = poor exposure
+    noise_max: 0.7            # 0-1, higher = more noise
+  
+  # Emergency mode settings
+  emergency_mode:
+    enable_emergency_stop: true
+    minimal_sensor_count: 1
+    fallback_strategies:
+      - "no_vision"           # Continue with IMU + GPS only
+      - "no_imu"             # Continue with vision + GPS only  
+      - "no_gps"             # Continue with vision + IMU only
+      - "emergency_stop"      # Stop all motion
+
+# Calibration validation settings
+calibration_validator:
+  # Validation parameters
+  validation_frequency: 1.0   # Hz
+  min_validation_samples: 50
+  enable_continuous_validation: true
+  auto_save_calibration: true
+  
+  # Quality thresholds
+  quality_thresholds:
+    reprojection_error_max: 1.0      # pixels
+    stereo_rectification_max: 2.0    # pixels
+    imu_camera_sync_max: 0.05        # seconds
+    temporal_alignment_max: 0.05     # seconds
+    overall_quality_min: 0.8         # 0-1
+  
+  # Data persistence
+  calibration_data_dir: "/home/rover/calibration_data"
+  backup_count: 10                   # Keep last N calibrations
+  validation_log_size: 1000          # Keep last N validation results
+
+# Sensor fusion fault tolerance
+sensor_fusion:
+  # Health monitoring
+  sensor_timeout: 5.0         # seconds
+  max_failure_count: 10
+  health_check_rate: 1.0      # Hz
+  
+  # Quality assessment
+  enable_quality_tracking: true
+  quality_history_size: 100
+  min_fusion_quality: 0.5
+  
+  # Adaptive behavior
+  single_sensor_mode: true    # Allow operation with one sensor
+  confidence_adaptation: true # Adapt thresholds based on sensor health
+  temporal_smoothing: true    # Smooth detections over time

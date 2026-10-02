@@ -1,0 +1,63 @@
+# ZED Native Object Detection Configuration
+# ========================================
+
+zed_object_detector:
+  # Detection Model Options:
+  # - MULTI_CLASS_BOX_ACCURATE: Best accuracy, slower (recommended for URC)
+  # - MULTI_CLASS_BOX_FAST: Faster detection, lower accuracy
+  # - PERSON_HEAD_BOX_ACCURATE: Person detection only, high accuracy
+  # - PERSON_HEAD_BOX_FAST: Person detection only, fast
+  # - CUSTOM_BOX_OBJECTS: Custom trained model
+  detection_model: "MULTI_CLASS_BOX_ACCURATE"
+  
+  # Tracking and Performance
+  enable_tracking: true           # Enable persistent object IDs
+  enable_segmentation: false      # Disable segmentation for speed
+  detection_confidence: 0.5       # Minimum confidence threshold (0.0-1.0)
+  max_range: 20.0                # Maximum detection range (meters)
+  publish_rate: 10.0             # Detection publishing rate (Hz)
+  
+  # Topics
+  output_topic: "/zed_detections_3d"
+  
+  # Mission-specific settings
+  mission_categories:
+    # Science objects
+    bottle: "science"
+    rock: "science" 
+    mineral: "science"
+    sample: "science"
+    
+    # Equipment objects  
+    toolbox: "equipment"
+    container: "equipment"
+    backpack: "equipment"
+    electronics: "equipment"
+    
+    # Navigation aids
+    flag: "navigation"
+    sign: "navigation"
+    marker: "navigation"
+    
+    # Safety
+    person: "human"
+    human: "human"
+    
+    # Obstacles
+    vehicle: "obstacle"
+    obstacle: "obstacle"
+    barrier: "obstacle"
+
+# Performance tuning for Jetson
+jetson_optimization:
+  # GPU memory allocation
+  gpu_memory_limit: 2048          # MB (adjust based on Jetson model)
+  
+  # Processing optimization
+  use_tensorrt: true              # Enable TensorRT optimization
+  precision: "FP16"               # Use half precision for speed
+  
+  # Camera settings for performance
+  camera_resolution: "HD720"      # Balance between quality and speed
+  camera_fps: 30                  # Camera frame rate
+  depth_mode: "NEURAL"            # AI-enhanced depth (better accuracy)

@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: rover_description
+    relative_path: urdf/rover.urdf.xacro
+  srdf:
+    relative_path: config/HURCRover.srdf
+  package_settings:
+    author_name: Example
+    author_email: example@example.com
+    generated_timestamp: 1771784201
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

@@ -1,0 +1,60 @@
+# URC Perception System Monitoring Configuration
+# =============================================
+
+perception_health_monitor:
+  # Core system topics to monitor
+  critical_topics:
+    - topic: "/zed2i/left/image_rect_color"
+      timeout: 2.0
+      message_type: "sensor_msgs/Image"
+      description: "ZED2i left camera feed"
+      
+    - topic: "/zed2i/imu/data" 
+      timeout: 1.0
+      message_type: "sensor_msgs/Imu"
+      description: "ZED2i IMU data"
+      
+    - topic: "/gnss/fix"
+      timeout: 5.0
+      message_type: "sensor_msgs/NavSatFix"
+      description: "GNSS position fix"
+      
+    - topic: "/odometry/filtered"
+      timeout: 2.0
+      message_type: "nav_msgs/Odometry"
+      description: "Filtered odometry from EKF"
+      
+    - topic: "/map"
+      timeout: 10.0
+      message_type: "nav_msgs/OccupancyGrid"
+      description: "SLAM occupancy grid map"
+
+  # Optional detection topics
+  detection_topics:
+    - topic: "/detected_objects"
+      timeout: 5.0
+      message_type: "vision_msgs/Detection2DArray"
+      description: "YOLO object detections"
+      
+    - topic: "/aruco_detections"
+      timeout: 5.0
+      message_type: "vision_msgs/Detection3DArray" 
+      description: "ArUco marker detections"
+      
+    - topic: "/target_pose"
+      timeout: 5.0
+      message_type: "geometry_msgs/PoseStamped"
+      description: "Target poses from detections"
+
+  # Health check parameters
+  check_frequency: 2.0  # Hz
+  warning_threshold: 3   # consecutive failures before warning
+  error_threshold: 10    # consecutive failures before error
+  
+  # Diagnostics publishing
+  publish_diagnostics: true
+  diagnostics_topic: "/perception/diagnostics"
+  
+  # System recovery
+  auto_restart_components: false  # Set to true for autonomous missions
+  max_restart_attempts: 3

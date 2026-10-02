@@ -1,0 +1,6 @@
+detection_topic:    /detected_objects
+cloud_topic:        /zed2i/point_cloud/cloud_registered
+output_topic:       /target_pose
+frame_id:           map
+use_closest_point:  true
+confidence_filter:  0.5

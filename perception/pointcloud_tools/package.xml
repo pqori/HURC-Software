@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>pointcloud_tools</name>
+  <version>0.1.0</version>
+  <description>Lightweight utilities:
+      (1) convert ZED point cloud to LaserScan,
+      (2) build a rolling 2-D occupancy grid.
+  </description>
+
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Dorde Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_py</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>numpy</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+
+</package>

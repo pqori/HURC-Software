@@ -1,0 +1,30 @@
+name: hurc
+services:
+  ros:
+    image: hurc-ros
+    tty: true
+    stdin_open: true
+    command: /bin/sh -c 'echo "Access GUI at http://localhost:8080/vnc.html" && exec /bin/bash'
+    environment:
+      - DISPLAY=novnc:0.0
+    depends_on:
+      - novnc
+    networks:
+      - x11
+    volumes:
+      - type: bind
+        source: .
+        target: /home/rover/ros_ws/src
+  novnc:
+    image: theasp/novnc:latest
+    environment:
+      # Adjust to your screen size
+      - DISPLAY_WIDTH=1500
+      - DISPLAY_HEIGHT=750
+      - RUN_XTERM=no
+    ports:
+      - "8080:8080"
+    networks:
+      - x11
+networks:
+  x11:

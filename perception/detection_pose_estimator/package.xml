@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>detection_pose_estimator</name>
+  <version>0.1.0</version>
+  <description>Convert 2D detections + ZED pointcloud into map-frame PoseStamped goals</description>
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Dorde Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf_transformations</depend>
+  <depend>zed2i_launch</depend>
+  <depend>scipy</depend>
+  <depend>numpy</depend>
+</package>

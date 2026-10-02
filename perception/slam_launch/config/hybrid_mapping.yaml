@@ -1,0 +1,60 @@
+# Hybrid Mapping Configuration
+# ============================
+
+mapping_coordinator:
+  # Mapping mode selection
+  mapping_mode: "hybrid_fusion"     # hybrid_fusion, zed_primary, rtabmap_only, auto_select
+  
+  # Fusion weights
+  zed_weight: 0.7                   # Weight for ZED mapping (0-1)
+  rtabmap_weight: 0.3               # Weight for RTAB-Map (0-1)
+  
+  # Performance thresholds
+  performance_threshold: 0.8        # Minimum performance for primary use
+  switch_hysteresis: 2.0           # Minimum time between switches (seconds)
+  
+  # Grid parameters
+  grid_resolution: 0.05             # Unified grid resolution (meters)
+  grid_size: 2048                   # Grid dimensions (cells)
+  obstacle_height_threshold: 0.3    # Height threshold for obstacles (meters)
+  
+  # Topic configuration
+  zed_cloud_topic: "/camera/mapping/fused_cloud"
+  rtabmap_grid_topic: "/rtabmap/grid_map"
+  unified_map_topic: "/map"
+  
+  # Performance monitoring
+  enable_performance_monitoring: true
+  performance_log_interval: 5.0     # Log interval (seconds)
+
+# ZED Spatial Mapping Integration
+zed_mapping_integration:
+  # Enable ZED spatial mapping in camera
+  enable_spatial_mapping: true
+  
+  # ZED mapping parameters (passed to camera)
+  mapping_resolution: 0.05          # Mapping resolution (meters)
+  max_mapping_range: 10.0           # Maximum mapping range (meters)
+  fused_pointcloud_freq: 5.0        # Update frequency (Hz)
+  
+  # Memory management
+  max_memory_usage_mb: 1024         # Maximum GPU memory usage
+  use_chunk_only: true              # Memory optimization
+  
+  # Quality settings
+  enable_texture_mapping: true      # Enable colored mapping
+  texture_confidence_threshold: 100 # Texture confidence threshold
+
+# RTAB-Map Integration Settings  
+rtabmap_integration:
+  # Enhanced RTAB-Map parameters for hybrid mode
+  enhanced_loop_closure: true       # Better loop closure for global consistency
+  reduced_cpu_usage: true           # Optimize CPU usage when ZED active
+  
+  # Update rates (optimized for hybrid)
+  linear_update_threshold: 0.3      # Reduced from 0.5 (ZED handles fine detail)
+  angular_update_threshold: 0.5     # Reduced from 0.8 (ZED handles fine detail)
+  
+  # Memory management
+  memory_management_enabled: true   # Enable memory optimization
+  max_memory_usage_mb: 2048        # Maximum memory for RTAB-Map

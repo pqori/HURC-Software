@@ -1,0 +1,23 @@
+<?xml version="3.0"?>
+<package format="3">
+  <name>aruco_detector</name>
+  <version>0.1.0</version>
+  <description>A lightweight ArUco detector publishing 3‑D tag poses from ZED 2i images.</description>
+
+  <maintainer email="dorde_ivanovic@college.harvard.edu">Djordje Ivanovic</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build -->
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!-- Exec deps -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>vision_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+
+  <!-- Testing -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+</package>
