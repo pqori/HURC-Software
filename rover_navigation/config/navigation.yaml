@@ -78,7 +78,9 @@ controller_server:
     controller_frequency: 10.0
 
     publish_zero_velocity: true
-    enable_stamped_cmd_vel: false
+    # Jazzy: publish geometry_msgs/TwistStamped; the velocity smoother and
+    # rover_drive_controller (diff_drive_controller 4.x) both expect stamped.
+    enable_stamped_cmd_vel: true
 
     controller_plugins: ["FollowPath"]
 
@@ -119,7 +121,10 @@ planner_server:
 bt_navigator:
   ros__parameters:
     # use_sim_time: false
-    default_bt_xml_filename: "/opt/ros/humble/share/nav2_bt_navigator/behavior_trees/navigate_w_replanning_and_recovery.xml"
+    # Replaces default_bt_xml_filename, which is not a Jazzy parameter and
+    # pointed at a Humble-only /opt/ros/humble path. Empty means Nav2 uses its
+    # packaged behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml.
+    default_nav_to_pose_bt_xml: ""
 
 velocity_smoother:
   ros__parameters:
@@ -129,4 +134,10 @@ velocity_smoother:
     max_accel: [0.3, 0.0, 0.8]
     max_decel: [-0.5, 0.0, -0.8]
     odom_topic: "/odometry/filtered"
-    enable_stamped_cmd_vel: false
+    # Must match controller_server / behavior_server (all share /cmd_vel).
+    enable_stamped_cmd_vel: true
+
+behavior_server:
+  ros__parameters:
+    # Spin / back-up / wait behaviors also publish on /cmd_vel.
+    enable_stamped_cmd_vel: true

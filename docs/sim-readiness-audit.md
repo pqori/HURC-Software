@@ -1,5 +1,7 @@
 # HURC-Software: sim-readiness audit (branch `Gabriel`, commit f44c4aa)
 
+> Note (2026-10-02): this audit was written against ROS 2 Humble + Gazebo Fortress. The sim has since moved to Jazzy + Harmonic: the drive controller now takes `geometry_msgs/TwistStamped` on `/rover_drive_controller/cmd_vel` (not `Twist` on `cmd_vel_unstamped`), Nav2 publishes stamped velocities (`enable_stamped_cmd_vel: true`), and installed package versions differ from those quoted below (e.g. ros_gz_bridge 1.0.x, gz-sensors8). Re-check versions and topic names before acting on it.
+
 Scope: read-only. Line numbers for `rover_description/*` are from `HEAD`, because another agent is editing `gazebo.launch.py` and `rover.urdf.xacro` in the working tree right now. Install, log and build directories, and `* copy.py` files, were skipped. Param files were checked with Humble's rcl parser (`rclpy.init(['--ros-args','--params-file',f])` from the repo's `.pixi` env).
 
 ---

@@ -1,4 +1,4 @@
-# Native (non-Docker) ROS 2 Humble environment for the rover simulator,
+# Native (non-Docker) ROS 2 Jazzy environment for the rover simulator,
 # built on RoboStack. Primary target: Apple Silicon Macs; the lock file also
 # solves for linux-64, linux-aarch64 and osx-64. Linux users can
 # use it too, but the Dockerfile remains the reference for hardware work
@@ -6,37 +6,38 @@
 #
 #   pixi install          # one-time, downloads a few GB
 #   pixi run build        # colcon build of the sim packages only
-#   pixi run sim          # Gazebo (Fortress) + rviz2 + controllers
+#   pixi run sim          # Gazebo (Harmonic) + rviz2 + controllers
 #   pixi run sim-headless # same, server only, no GUI (CI / verification)
+#   pixi run gz-gui       # Gazebo GUI for a running sim (second terminal)
 #   pixi run teleop       # keyboard driving (run in a second terminal)
 
 [workspace]
 name = "hurc-rover-sim"
-description = "HURC rover Gazebo simulation via pixi + RoboStack (ROS 2 Humble)"
-channels = ["https://prefix.dev/robostack-staging", "conda-forge"]
+description = "HURC rover Gazebo simulation via pixi + RoboStack (ROS 2 Jazzy, Gazebo Harmonic)"
+channels = ["https://prefix.dev/robostack-jazzy", "conda-forge"]
 platforms = ["osx-arm64", "linux-64", "linux-aarch64", "osx-64"]
 
 [dependencies]
 # ROS 2 core + tools
-ros-humble-desktop = "*"
-ros-humble-xacro = "*"
-ros-humble-robot-state-publisher = "*"
-ros-humble-joint-state-publisher-gui = "*"
-ros-humble-teleop-twist-keyboard = "*"
+ros-jazzy-desktop = "*"
+ros-jazzy-xacro = "*"
+ros-jazzy-robot-state-publisher = "*"
+ros-jazzy-joint-state-publisher-gui = "*"
+ros-jazzy-teleop-twist-keyboard = "*"
 
-# Gazebo Fortress bridge and ros2_control integration
-ros-humble-ros-gz-sim = "*"
-ros-humble-ros-gz-bridge = "*"
-ros-humble-gz-ros2-control = "*"
-ros-humble-ros2-control = "*"
-ros-humble-controller-manager = "*"
-ros-humble-ros2-controllers = "*"   # diff_drive, position, JTC, JSB, ...
+# Gazebo Harmonic bridge and ros2_control integration
+ros-jazzy-ros-gz-sim = "*"
+ros-jazzy-ros-gz-bridge = "*"
+ros-jazzy-gz-ros2-control = "*"
+ros-jazzy-ros2-control = "*"
+ros-jazzy-controller-manager = "*"
+ros-jazzy-ros2-controllers = "*"   # diff_drive, position, JTC, JSB, ...
 
 # Autonomy and manipulation stacks (no RTAB-Map / ZED on macOS)
-ros-humble-navigation2 = "*"
-ros-humble-nav2-bringup = "*"
-ros-humble-robot-localization = "*"
-ros-humble-moveit = "*"
+ros-jazzy-navigation2 = "*"
+ros-jazzy-nav2-bringup = "*"
+ros-jazzy-robot-localization = "*"
+ros-jazzy-moveit = "*"
 
 # Build toolchain
 colcon-common-extensions = "*"
@@ -47,8 +48,13 @@ ninja = "*"
 pkg-config = "*"
 
 [activation.env]
-# Keep this workspace's ROS traffic off other machines on the LAN.
-ROS_LOCALHOST_ONLY = "1"
+# Keep this workspace's ROS traffic off other machines on the LAN. (Jazzy
+# deprecates ROS_LOCALHOST_ONLY=1 and warns on every node; this is its replacement.)
+ROS_AUTOMATIC_DISCOVERY_RANGE = "LOCALHOST"
+# Pin gz-transport to loopback too: on Wi-Fi/VPN interfaces without a multicast route
+# discovery otherwise spams "Exception sending a multicast message: Can't assign requested address".
+GZ_IP = "127.0.0.1"
+IGN_IP = "127.0.0.1"
 
 [tasks]
 # Only the packages the simulator needs; the rest (ZED, micro-ROS, EPOS
@@ -56,5 +62,8 @@ ROS_LOCALHOST_ONLY = "1"
 build = "colcon build --symlink-install --packages-select rover_description rover_navigation rover_moveit_config --cmake-args -DBUILD_TESTING=OFF"
 sim = "bash scripts/pixi_sim.sh"
 sim-headless = "bash scripts/pixi_sim.sh headless:=true rviz:=false"
-teleop = "bash -c 'source install/setup.bash && ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/rover_drive_controller/cmd_vel_unstamped'"
+# Gazebo GUI as a separate client of an already-running server (second terminal; works on macOS).
+gz-gui = "bash scripts/pixi_gz_gui.sh"
+# Jazzy's diff_drive_controller only accepts TwistStamped on ~/cmd_vel.
+teleop = "bash -c 'source install/setup.bash && ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true -p frame_id:=base_link -r cmd_vel:=/rover_drive_controller/cmd_vel'"
 clean = "rm -rf build install log"

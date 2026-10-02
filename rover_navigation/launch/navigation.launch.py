@@ -52,7 +52,9 @@ def generate_launch_description():
         name="velocity_smoother",
         output="screen",
         parameters=[nav2_params],
-        remappings=[('cmd_vel_smoothed', '/rover_drive_controller/cmd_vel_unstamped')]
+        # Jazzy diff_drive_controller only takes TwistStamped on ~/cmd_vel
+        # (enable_stamped_cmd_vel: true in navigation.yaml).
+        remappings=[('cmd_vel_smoothed', '/rover_drive_controller/cmd_vel')]
     )
 
     lifecycle_manager = Node(

@@ -51,8 +51,9 @@ def generate_launch_description():
     ])
 
     # Let Gazebo resolve package://rover_description/... mesh URIs.
-    # Fortress (ign-gazebo6) reads IGN_GAZEBO_RESOURCE_PATH; newer Gazebo
-    # reads GZ_SIM_RESOURCE_PATH. Set both, keeping any existing entries.
+    # Gazebo Harmonic (gz-sim8, ROS 2 Jazzy) reads GZ_SIM_RESOURCE_PATH. The
+    # Fortress-era IGN_GAZEBO_* variables are no longer set: Harmonic only
+    # reads them as deprecated fallbacks.
     share_dir = PathJoinSubstitution([
         FindPackageShare("rover_description"),
         "..",  # go from share/rover_description -> share
@@ -61,29 +62,24 @@ def generate_launch_description():
         name="GZ_SIM_RESOURCE_PATH",
         value=[share_dir, ":", EnvironmentVariable("GZ_SIM_RESOURCE_PATH", default_value="")],
     )
-    ign_resource_path = SetEnvironmentVariable(
-        name="IGN_GAZEBO_RESOURCE_PATH",
-        value=[share_dir, ":", EnvironmentVariable("IGN_GAZEBO_RESOURCE_PATH", default_value="")],
-    )
 
     # Let Gazebo find the gz_ros2_control system plugin. On Linux it is found
     # through LD_LIBRARY_PATH; macOS strips DYLD_* variables, so point
     # Gazebo's plugin search path at the package's lib directory explicitly.
+    # (Still required on Harmonic: without it macOS logs "Failed to load
+    # system plugin [gz_ros2_control-system] : Could not find shared library.")
     gz_plugin_dir = PathJoinSubstitution([FindPackagePrefix("gz_ros2_control"), "lib"])
     gz_plugin_path = SetEnvironmentVariable(
         name="GZ_SIM_SYSTEM_PLUGIN_PATH",
         value=[gz_plugin_dir, ":", EnvironmentVariable("GZ_SIM_SYSTEM_PLUGIN_PATH", default_value="")],
     )
-    ign_plugin_path = SetEnvironmentVariable(
-        name="IGN_GAZEBO_SYSTEM_PLUGIN_PATH",
-        value=[gz_plugin_dir, ":", EnvironmentVariable("IGN_GAZEBO_SYSTEM_PLUGIN_PATH", default_value="")],
-    )
 
-    # headless:=true adds -s (server only). On macOS the Gazebo Fortress GUI
-    # cannot run at all (the `ign gazebo` front end refuses anything but -s,
-    # and the GUI's Ogre2 scene needs the Cocoa main thread; see
-    # https://github.com/gazebosim/gz-sim/issues/44), so there the server
-    # always runs with -s and rviz2 is the visualizer.
+    # headless:=true adds -s (server only). On macOS Gazebo cannot run the
+    # server and the GUI in one process (the GUI needs the Cocoa main thread;
+    # see https://github.com/gazebosim/gz-sim/issues/44), so there the server
+    # always runs with -s. rviz2 is the default viewer; with Gazebo Harmonic
+    # the Gazebo GUI can also be opened as a separate client process with
+    # `pixi run gz-gui` (i.e. `gz sim -g`) in a second terminal.
     is_macos = platform.system() == "Darwin"
     gz_args = [
         PythonExpression([
@@ -95,7 +91,8 @@ def generate_launch_description():
     ]
 
     macos_gui_note = LogInfo(
-        msg="macOS: Gazebo runs server-only (no Gazebo GUI on macOS); use rviz2 to watch the rover.",
+        msg="macOS: Gazebo runs server-only; watch the rover in rviz2, or run "
+            "`pixi run gz-gui` in a second terminal for the Gazebo GUI.",
         condition=UnlessCondition(LaunchConfiguration("headless")),
     )
 
@@ -180,9 +177,7 @@ def generate_launch_description():
         headless_arg,
         world_arg,
         gz_resource_path,
-        ign_resource_path,
         gz_plugin_path,
-        ign_plugin_path,
         gazebo,
         *([macos_gui_note] if is_macos else []),
         gazebo_bridge,
