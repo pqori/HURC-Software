@@ -625,7 +625,7 @@
     </gazebo>
   </xacro:if>
   <xacro:unless value="$(arg use_gazebo)">
-    <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro"/>
+    <xacro:include filename="$(find rover_description)/urdf/zed/zed_macro.urdf.xacro"/>
     <xacro:zed_camera name="Front_Zed" model="zed2i" enable_gnss="false">
       <gnss_origin/>
     </xacro:zed_camera>
