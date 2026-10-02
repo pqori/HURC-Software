@@ -1,0 +1,47 @@
+# ros2_control controllers for the I2RT YAM arm (default prefix "yam_").
+# If you instantiate the arm with a different prefix, rename the joints here.
+# Gains on the real arm live in the i2rt driver (kp = [80,80,80,10,10,10],
+# kd = [5,5,5,1.5,1.5,1.5]); these controllers only stream position setpoints.
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz, matches i2rt's default control loop
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    yam_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    yam_gripper_controller:
+      type: position_controllers/JointGroupPositionController
+
+yam_arm_controller:
+  ros__parameters:
+    joints:
+      - yam_joint1
+      - yam_joint2
+      - yam_joint3
+      - yam_joint4
+      - yam_joint5
+      - yam_joint6
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+    open_loop_control: false
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+
+# Finger opening per side in metres: 0.0 = closed, 0.0475 = open (linear_4310).
+# yam_joint8 follows through the URDF <mimic>.
+yam_gripper_controller:
+  ros__parameters:
+    joints:
+      - yam_joint7
+    interface_name: position

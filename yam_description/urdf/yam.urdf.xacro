@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+  Standalone I2RT YAM arm bolted to a `world` link.
+
+    xacro yam.urdf.xacro                         # linear_4310 gripper, prefix yam_
+    xacro yam.urdf.xacro gripper:=crank_4310
+    xacro yam.urdf.xacro gripper:=none prefix:=arm_
+
+  Set ros2_control:=true to also emit the <ros2_control> block (plugin set by
+  ros2_control_plugin, default gz_ros2_control/GazeboSimSystem). It is off by
+  default because nothing consumes it yet.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="yam">
+  <xacro:arg name="gripper" default="linear_4310"/>
+  <xacro:arg name="prefix" default="yam_"/>
+  <xacro:arg name="ros2_control" default="false"/>
+  <xacro:arg name="ros2_control_plugin" default="gz_ros2_control/GazeboSimSystem"/>
+
+  <xacro:include filename="yam_macro.urdf.xacro"/>
+  <xacro:include filename="yam.ros2_control.xacro"/>
+
+  <link name="world"/>
+
+  <xacro:yam_arm prefix="$(arg prefix)" parent="world" gripper="$(arg gripper)" fixed_base="true">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:yam_arm>
+
+  <xacro:if value="$(arg ros2_control)">
+    <xacro:yam_ros2_control name="YamArm" prefix="$(arg prefix)" gripper="$(arg gripper)"
+                            plugin="$(arg ros2_control_plugin)"/>
+  </xacro:if>
+</robot>

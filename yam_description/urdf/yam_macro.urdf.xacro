@@ -1,0 +1,364 @@
+<?xml version="1.0"?>
+<!--
+  I2RT YAM 6-DoF arm (v1) as a reusable xacro macro.
+
+  Arm kinematics, inertials and joint ranges are copied verbatim from
+  i2rt/robot_models/arm/yam/v1/yam.urdf (i2rt commit
+  120c3c81400171174604e503943f8d1ebc891058, MIT licence, see ../LICENSE.i2rt).
+  Gripper geometry is taken from the i2rt gripper MJCFs
+  (robot_models/gripper/<name>/<name>.xml) re-expressed in the `gripper` mount
+  frame exactly the way i2rt's MuJoCo assembler (robots/utils.py) merges them,
+  so this URDF and the i2rt MuJoCo model agree on every frame and finger
+  coordinate.
+
+  Usage:
+    <xacro:include filename="$(find yam_description)/urdf/yam_macro.urdf.xacro"/>
+    <xacro:yam_arm prefix="yam_" parent="base_link" gripper="linear_4310" fixed_base="true">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:yam_arm>
+
+  Parameters:
+    prefix      prepended to every link and joint name (default "yam_")
+    parent      link the arm base is bolted to (default "world")
+    *origin     pose of <prefix>base in <parent>
+    gripper     linear_4310 (default) | crank_4310 | none
+    fixed_base  true: emit a fixed joint <prefix>base_joint from <parent> to
+                <prefix>base.  false: emit no attachment joint; <prefix>base is
+                then a root link (parent and origin are ignored).
+
+  Frames (see README.md):
+    <prefix>base     arm base, Z up, X towards the arm's front at home
+    <prefix>gripper  tool flange / gripper mount, child of joint6.
+                     +Z forward (approach), +X right, +Y down (ROS optical style)
+    <prefix>tcp      i2rt tcp_site (flange centre)
+    <prefix>grasp    i2rt grasp_site (midpoint between the finger tips)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="yam_mesh_root" value="package://yam_description/meshes"/>
+
+  <!-- Motor-derived limits. Peak torques: DM4340 ~27 N.m (joints 1-3),
+       DM4310 ~7 N.m (joints 4-6 and gripper). Velocities are conservative
+       planning limits, well below the motors' MIT-mode encoding ranges
+       (DM4340 10 rad/s, DM4310 30 rad/s). -->
+  <xacro:property name="yam_effort_dm4340" value="27.0"/>
+  <xacro:property name="yam_effort_dm4310" value="7.0"/>
+  <xacro:property name="yam_velocity_dm4340" value="3.14159"/>
+  <xacro:property name="yam_velocity_dm4310" value="6.28319"/>
+  <!-- Finger (prismatic) limits: nominal values, not from a datasheet. -->
+  <xacro:property name="yam_finger_effort" value="50.0"/>
+  <xacro:property name="yam_finger_velocity" value="0.1"/>
+
+  <!-- One visual + identical collision mesh. i2rt ships no collision
+       geometry; the visual meshes are used for both. -->
+  <xacro:macro name="yam_mesh" params="mesh xyz rpy material rgba">
+    <visual>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+      <geometry>
+        <mesh filename="${yam_mesh_root}/${mesh}" scale="1 1 1"/>
+      </geometry>
+      <material name="${material}">
+        <color rgba="${rgba}"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+      <geometry>
+        <mesh filename="${yam_mesh_root}/${mesh}" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </xacro:macro>
+
+  <xacro:macro name="yam_arm"
+               params="prefix:=yam_ parent:=world *origin gripper:=linear_4310 fixed_base:=true">
+
+    <xacro:unless value="${gripper in ['linear_4310', 'crank_4310', 'none']}">
+      ${xacro.fatal("yam_arm: gripper must be linear_4310, crank_4310 or none, got '" + str(gripper) + "'")}
+    </xacro:unless>
+
+    <xacro:if value="${fixed_base}">
+      <joint name="${prefix}base_joint" type="fixed">
+        <xacro:insert_block name="origin"/>
+        <parent link="${parent}"/>
+        <child link="${prefix}base"/>
+      </joint>
+    </xacro:if>
+
+    <!-- ================================================================ -->
+    <!-- Arm links (verbatim from i2rt yam.urdf)                           -->
+    <!-- ================================================================ -->
+    <link name="${prefix}base">
+      <inertial>
+        <mass value="0.873654"/>
+        <origin xyz="-3.8391e-05 2.4007e-05 0.024768" rpy="0 1.5708 3.1416"/>
+        <inertia ixx="0.00157059" ixy="-9.4753e-07" ixz="2.04071e-07" iyy="0.000678307" iyz="2.44292e-07" izz="0.00169404"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/base.stl" xyz="0.037496 0.046401 0.1875" rpy="0 1.5708 3.1416"
+                      material="${prefix}base_material" rgba="0.317647 0.121569 0.498039 1"/>
+    </link>
+
+    <link name="${prefix}link1">
+      <inertial>
+        <mass value="0.101218"/>
+        <origin xyz="-0.0233636 -0.00172503 -0.00727828" rpy="0 0 0"/>
+        <inertia ixx="0.000114689" ixy="-4.62759e-06" ixz="-1.3427e-05" iyy="4.76603e-05" iyz="-2.58724e-06" izz="0.000125996"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/link1.stl" xyz="-0.119501 -0.0464 -0.0374968" rpy="0 0 0"
+                      material="${prefix}link1_material" rgba="0.72549 0.45098 0.317647 1"/>
+    </link>
+
+    <link name="${prefix}link2">
+      <inertial>
+        <mass value="1.46908"/>
+        <origin xyz="0.000134495 -0.0331253 0.129165" rpy="0 0 0"/>
+        <inertia ixx="0.0146686" ixy="-1.1067e-08" ixz="-4.33007e-07" iyy="0.014599" iyz="3.12564e-06" izz="0.000800089"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/link2.stl" xyz="-0.0740001 -0.08025 -0.0174977" rpy="0 0 0"
+                      material="${prefix}link2_material" rgba="0 0.4 0.6 1"/>
+    </link>
+
+    <link name="${prefix}link3">
+      <inertial>
+        <mass value="0.982553"/>
+        <origin xyz="-0.0556042 -0.0340514 -0.135083" rpy="0 0 0"/>
+        <inertia ixx="0.00758945" ixy="4.36076e-06" ixz="-0.00064069" iyy="0.00763097" iyz="-1.09984e-05" izz="0.000937606"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/link3.stl" xyz="-0.0740003 -0.0813 -0.281499" rpy="0 0 0"
+                      material="${prefix}link3_material" rgba="0.552941 0.580392 0.203922 1"/>
+    </link>
+
+    <link name="${prefix}link4">
+      <inertial>
+        <mass value="0.462165"/>
+        <origin xyz="-0.0550959 0.032726 -0.0575534" rpy="0 0 0"/>
+        <inertia ixx="0.000473594" ixy="3.00819e-05" ixz="-0.000238801" iyy="0.000764022" iyz="2.9261e-05" izz="0.000604492"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/link4.stl" xyz="-0.0140003 -0.0125 -0.0364989" rpy="0 0 0"
+                      material="${prefix}link4_material" rgba="0.545098 0.52549 0.419608 1"/>
+    </link>
+
+    <link name="${prefix}link5">
+      <inertial>
+        <mass value="0.403307"/>
+        <origin xyz="0.0375847 -3.55003e-05 -0.000825911" rpy="0 0 0"/>
+        <inertia ixx="0.000184284" ixy="2.10549e-07" ixz="1.29173e-05" iyy="0.000219791" iyz="-3.49657e-07" izz="0.000181053"/>
+      </inertial>
+      <xacro:yam_mesh mesh="yam/link5.stl" xyz="0.0265 -0.0463995 0.0375" rpy="0 0 0"
+                      material="${prefix}link5_material" rgba="0.827451 0.623529 0.784314 1"/>
+    </link>
+
+    <!-- ================================================================ -->
+    <!-- Arm joints (origins, axes and ranges verbatim from i2rt yam.urdf) -->
+    <!-- ================================================================ -->
+    <joint name="${prefix}joint1" type="revolute">
+      <origin xyz="0 0 0.068" rpy="0 1.5708 3.1416"/>
+      <axis xyz="-1 0 0"/>
+      <parent link="${prefix}base"/>
+      <child link="${prefix}link1"/>
+      <limit effort="${yam_effort_dm4340}" velocity="${yam_velocity_dm4340}" lower="-2.61799" upper="3.14159"/>
+    </joint>
+
+    <joint name="${prefix}joint2" type="revolute">
+      <origin xyz="-0.0455 -0.0339 -0.02" rpy="0 0 -3.14159"/>
+      <axis xyz="0 1 0"/>
+      <parent link="${prefix}link1"/>
+      <child link="${prefix}link2"/>
+      <limit effort="${yam_effort_dm4340}" velocity="${yam_velocity_dm4340}" lower="-8.88178e-16" upper="3.66519"/>
+    </joint>
+
+    <joint name="${prefix}joint3" type="revolute">
+      <origin xyz="0 -0.0688 0.264" rpy="0 0 -3.14159"/>
+      <axis xyz="0 1 0"/>
+      <parent link="${prefix}link2"/>
+      <child link="${prefix}link3"/>
+      <limit effort="${yam_effort_dm4340}" velocity="${yam_velocity_dm4340}" lower="0" upper="3.14159"/>
+    </joint>
+
+    <joint name="${prefix}joint4" type="revolute">
+      <origin xyz="-0.0600003 -0.0688 -0.244999" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <parent link="${prefix}link3"/>
+      <child link="${prefix}link4"/>
+      <limit effort="${yam_effort_dm4310}" velocity="${yam_velocity_dm4310}" lower="-1.69297" upper="1.5708"/>
+    </joint>
+
+    <joint name="${prefix}joint5" type="revolute">
+      <origin xyz="-0.0405003 0.0338995 -0.0739989" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <parent link="${prefix}link4"/>
+      <child link="${prefix}link5"/>
+      <limit effort="${yam_effort_dm4310}" velocity="${yam_velocity_dm4310}" lower="-1.5708" upper="1.5708"/>
+    </joint>
+
+    <joint name="${prefix}joint6" type="revolute">
+      <origin xyz="0.0404996 0 -0.0356" rpy="3.1415926535897927 0 1.5707963267949736"/>
+      <axis xyz="0 0 1"/>
+      <parent link="${prefix}link5"/>
+      <child link="${prefix}gripper"/>
+      <limit effort="${yam_effort_dm4310}" velocity="${yam_velocity_dm4310}" lower="-2.0944" upper="2.0944"/>
+    </joint>
+
+    <!-- ================================================================ -->
+    <!-- Gripper mount frame + selected gripper                           -->
+    <!-- ================================================================ -->
+    <xacro:if value="${gripper == 'linear_4310'}">
+      <xacro:yam_gripper_linear_4310 prefix="${prefix}"/>
+    </xacro:if>
+    <xacro:if value="${gripper == 'crank_4310'}">
+      <xacro:yam_gripper_crank_4310 prefix="${prefix}"/>
+    </xacro:if>
+    <xacro:if value="${gripper == 'none'}">
+      <xacro:yam_gripper_none prefix="${prefix}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!-- TCP / grasp frames. Positions and orientations are the i2rt MJCF
+       tcp_site / grasp_site expressed in the mount frame. Their orientation is
+       the mount frame rotated +90 deg about its Z (approach) axis, exactly as in
+       the MJCF. -->
+  <xacro:macro name="yam_tool_frames" params="prefix tcp_xyz grasp_xyz">
+    <link name="${prefix}tcp"/>
+    <joint name="${prefix}tcp_joint" type="fixed">
+      <origin xyz="${tcp_xyz}" rpy="0 0 ${pi/2}"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}tcp"/>
+    </joint>
+    <link name="${prefix}grasp"/>
+    <joint name="${prefix}grasp_joint" type="fixed">
+      <origin xyz="${grasp_xyz}" rpy="0 0 ${pi/2}"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}grasp"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ==================================================================
+       linear_4310: parallel gripper, two fingers on mirrored slides.
+       joint7 (left finger) is the actuated DoF; joint8 mimics it 1:1.
+       Range [0, 0.0475] m per finger: 0 = closed, 0.0475 = fully open
+       (i2rt sim_robot.py maps command 0 = closed, 1 = open onto this range).
+       Mount inertial is the i2rt yam.urdf `gripper` inertial (same body as
+       the MJCF one); finger values are the MJCF ones.
+       ================================================================== -->
+  <xacro:macro name="yam_gripper_linear_4310" params="prefix">
+    <link name="${prefix}gripper">
+      <inertial>
+        <mass value="0.553219"/>
+        <origin xyz="0.000249371 -3.57064e-05 0.0293133" rpy="${pi} 0 ${pi/2}"/>
+        <inertia ixx="0.000409669" ixy="5.44941e-07" ixz="7.91268e-07" iyy="0.000324942" iyz="-4.83959e-06" izz="0.000369249"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/linear_4310/gripper.stl" xyz="-0.0463995 -0.014 -0.0731" rpy="${pi} 0 ${pi/2}"
+                      material="${prefix}gripper_material" rgba="0.109804 0.286275 0.0117647 1"/>
+    </link>
+
+    <link name="${prefix}tip_left">
+      <inertial>
+        <mass value="0.0710042"/>
+        <origin xyz="-0.0224716 0.0143408 -0.0426253" rpy="0.568390227 -0.813950961 1.69860053"/>
+        <inertia ixx="6.24193e-05" ixy="0" ixz="0" iyy="6.01079e-05" iyz="0" izz="2.83591e-05"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/linear_4310/tip_left.stl" xyz="0.129783 0.00999321 -0.0914614" rpy="1.57080033 0 1.57080033"
+                      material="${prefix}tip_material" rgba="0.596078 0.788235 0.921569 1"/>
+    </link>
+
+    <link name="${prefix}tip_right">
+      <inertial>
+        <mass value="0.0710042"/>
+        <origin xyz="-0.0143408 -0.0224716 -0.0426253" rpy="2.57320202 0.81395112 0.127804323"/>
+        <inertia ixx="6.24193e-05" ixy="0" ixz="0" iyy="6.01079e-05" iyz="0" izz="2.83591e-05"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/linear_4310/tip_right.stl" xyz="-0.0379932 0.129783 0.00133753" rpy="-1.57080057 0 0"
+                      material="${prefix}tip_material" rgba="0.596078 0.788235 0.921569 1"/>
+    </link>
+
+    <joint name="${prefix}joint7" type="prismatic">
+      <origin xyz="0.0450619 -0.0238981 0.0545599" rpy="-1.57079833 1.57079233 -1.57079433"/>
+      <axis xyz="0 0 -1"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}tip_left"/>
+      <limit effort="${yam_finger_effort}" velocity="${yam_finger_velocity}" lower="0" upper="0.0475"/>
+    </joint>
+
+    <joint name="${prefix}joint8" type="prismatic">
+      <origin xyz="-0.0450619 0.0238981 0.0545599" rpy="-1.57079208 0 1.57079633"/>
+      <axis xyz="0 0 -1"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}tip_right"/>
+      <limit effort="${yam_finger_effort}" velocity="${yam_finger_velocity}" lower="0" upper="0.0475"/>
+      <mimic joint="${prefix}joint7" multiplier="1" offset="0"/>
+    </joint>
+
+    <xacro:yam_tool_frames prefix="${prefix}" tcp_xyz="0 0 0" grasp_xyz="3.8898e-05 9.681e-05 0.14465"/>
+  </xacro:macro>
+
+  <!-- ==================================================================
+       crank_4310: crank-driven gripper, fingers on mirrored slides.
+       Range [0, 0.039574] m per finger, 0 = closed. Values from crank_4310.xml.
+       ================================================================== -->
+  <xacro:macro name="yam_gripper_crank_4310" params="prefix">
+    <link name="${prefix}gripper">
+      <inertial>
+        <mass value="0.45"/>
+        <origin xyz="0 0 0.027" rpy="${-pi/2} 0 ${pi}"/>
+        <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0004" iyz="0" izz="0.0003"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/crank_4310/gripper.stl" xyz="0 0.164101 -0.110597" rpy="${-pi/2} 0 ${pi}"
+                      material="${prefix}gripper_material" rgba="1 0.6 0 1"/>
+    </link>
+
+    <link name="${prefix}tip_left">
+      <inertial>
+        <mass value="0.075"/>
+        <origin xyz="0.03 -0.04 -0.039" rpy="0 0 0"/>
+        <inertia ixx="6e-5" ixy="0" ixz="0" iyy="6e-5" iyz="0" izz="3e-5"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/crank_4310/tip_left.stl" xyz="0.03495 0.171097 -0.203301" rpy="0 0 0"
+                      material="${prefix}tip_material" rgba="0.74902 0.74902 0.74902 1"/>
+    </link>
+
+    <link name="${prefix}tip_right">
+      <inertial>
+        <mass value="0.075"/>
+        <origin xyz="-0.03 -0.04 0.039" rpy="0 0 0"/>
+        <inertia ixx="6e-5" ixy="0" ixz="0" iyy="6e-5" iyz="0" izz="3e-5"/>
+      </inertial>
+      <xacro:yam_mesh mesh="grippers/crank_4310/tip_right.stl" xyz="-0.03495 0.171097 -0.124901" rpy="0 0 0"
+                      material="${prefix}tip_material" rgba="0.74902 0.74902 0.74902 1"/>
+    </link>
+
+    <joint name="${prefix}joint7" type="prismatic">
+      <origin xyz="0.037 -0.0392 0.0605" rpy="${-pi/2} 0 ${pi}"/>
+      <axis xyz="1 0 0"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}tip_left"/>
+      <limit effort="${yam_finger_effort}" velocity="${yam_finger_velocity}" lower="0" upper="0.039574"/>
+    </joint>
+
+    <joint name="${prefix}joint8" type="prismatic">
+      <origin xyz="-0.037 0.0392 0.0605" rpy="${-pi/2} 0 ${pi}"/>
+      <axis xyz="-1 0 0"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}tip_right"/>
+      <limit effort="${yam_finger_effort}" velocity="${yam_finger_velocity}" lower="0" upper="0.039574"/>
+      <mimic joint="${prefix}joint7" multiplier="1" offset="0"/>
+    </joint>
+
+    <xacro:yam_tool_frames prefix="${prefix}" tcp_xyz="0 0 0" grasp_xyz="-8.8323e-05 0.04459 0.14676"/>
+  </xacro:macro>
+
+  <!-- ==================================================================
+       none: bare flange. i2rt's no_gripper.xml uses a 1e-6 kg placeholder;
+       a slightly larger placeholder is used here so physics engines that
+       reject near-zero masses (Gazebo) accept the joint6 child link.
+       ================================================================== -->
+  <xacro:macro name="yam_gripper_none" params="prefix">
+    <link name="${prefix}gripper">
+      <inertial>
+        <mass value="0.001"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+      </inertial>
+    </link>
+    <xacro:yam_tool_frames prefix="${prefix}" tcp_xyz="0 0 0" grasp_xyz="0 0 0"/>
+  </xacro:macro>
+
+</robot>

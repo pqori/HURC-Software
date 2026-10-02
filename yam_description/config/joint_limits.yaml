@@ -1,0 +1,75 @@
+# MoveIt joint limits for the I2RT YAM arm (default prefix "yam_"), for a
+# future yam_moveit_config. Position limits are the URDF ranges (copied from
+# i2rt yam.urdf). Velocity limits match the URDF <limit velocity>;
+# acceleration limits are conservative planning values (not measured).
+# MoveIt only accepts double values here, so integers are written as 1.0 etc.
+
+default_velocity_scaling_factor: 0.1
+default_acceleration_scaling_factor: 0.1
+
+joint_limits:
+  yam_joint1:
+    has_position_limits: true
+    min_position: -2.61799
+    max_position: 3.14159
+    has_velocity_limits: true
+    max_velocity: 3.14159
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  yam_joint2:
+    has_position_limits: true
+    min_position: 0.0
+    max_position: 3.66519
+    has_velocity_limits: true
+    max_velocity: 3.14159
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  yam_joint3:
+    has_position_limits: true
+    min_position: 0.0
+    max_position: 3.14159
+    has_velocity_limits: true
+    max_velocity: 3.14159
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  yam_joint4:
+    has_position_limits: true
+    min_position: -1.69297
+    max_position: 1.5708
+    has_velocity_limits: true
+    max_velocity: 6.28319
+    has_acceleration_limits: true
+    max_acceleration: 10.0
+  yam_joint5:
+    has_position_limits: true
+    min_position: -1.5708
+    max_position: 1.5708
+    has_velocity_limits: true
+    max_velocity: 6.28319
+    has_acceleration_limits: true
+    max_acceleration: 10.0
+  yam_joint6:
+    has_position_limits: true
+    min_position: -2.0944
+    max_position: 2.0944
+    has_velocity_limits: true
+    max_velocity: 6.28319
+    has_acceleration_limits: true
+    max_acceleration: 10.0
+  # linear_4310 finger (per side, metres). For crank_4310 use max 0.039574.
+  yam_joint7:
+    has_position_limits: true
+    min_position: 0.0
+    max_position: 0.0475
+    has_velocity_limits: true
+    max_velocity: 0.1
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  yam_joint8:
+    has_position_limits: true
+    min_position: 0.0
+    max_position: 0.0475
+    has_velocity_limits: true
+    max_velocity: 0.1
+    has_acceleration_limits: true
+    max_acceleration: 1.0

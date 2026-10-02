@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!--
+  ros2_control description for the I2RT YAM arm.
+
+  Declares joint1..joint6 and the gripper finger joint7 with a position
+  command interface and position / velocity / effort state interfaces.
+  joint8 (second finger) is a URDF <mimic> of joint7; it is listed with the
+  `mimic` / `multiplier` params that gz_ros2_control and
+  mock_components/GenericSystem (Humble) use to drive mimic joints, and has
+  no command interface.
+
+  Parameters:
+    name     ros2_control system name (default YamArm)
+    prefix   must match the prefix given to yam_arm (default yam_)
+    plugin   hardware plugin, e.g.
+               gz_ros2_control/GazeboSimSystem   (Gazebo Fortress)
+               mock_components/GenericSystem     (fake hardware, no physics)
+               <future yam_hardware plugin>      (real arm over CAN)
+    gripper  linear_4310 | crank_4310 | none  (none drops joint7/joint8)
+
+  For gz_ros2_control the gz_ros2_control Gazebo system plugin must also be
+  added to the URDF (not done here yet).
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="yam_ros2_control_joint" params="joint_name">
+    <joint name="${joint_name}">
+      <command_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="yam_ros2_control"
+               params="name:=YamArm prefix:=yam_ plugin:=gz_ros2_control/GazeboSimSystem gripper:=linear_4310">
+    <ros2_control name="${name}" type="system">
+      <hardware>
+        <plugin>${plugin}</plugin>
+      </hardware>
+
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint1"/>
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint2"/>
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint3"/>
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint4"/>
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint5"/>
+      <xacro:yam_ros2_control_joint joint_name="${prefix}joint6"/>
+
+      <xacro:unless value="${gripper == 'none'}">
+        <xacro:yam_ros2_control_joint joint_name="${prefix}joint7"/>
+        <joint name="${prefix}joint8">
+          <param name="mimic">${prefix}joint7</param>
+          <param name="multiplier">1</param>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+          <state_interface name="effort"/>
+        </joint>
+      </xacro:unless>
+    </ros2_control>
+  </xacro:macro>
+
+</robot>
