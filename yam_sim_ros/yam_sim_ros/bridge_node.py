@@ -9,6 +9,13 @@ the same node drives ``YamSimRobot`` (backend:=sim) or i2rt's ``MotorChainRobot`
     /joint_states                      sensor_msgs/JointState  <prefix>joint1..6 (rad, rad/s, N m),
                                        <prefix>joint7/8 fingers (m, m/s, gripper motor torque N m)
     ~/target_joint_pos                 sensor_msgs/JointState  what the bridge is commanding right now
+    /yam_wrist_camera/image_raw        sensor_msgs/Image       rgb8, frame <prefix>wrist_camera_optical_frame
+    /yam_wrist_camera/image_raw/compressed  sensor_msgs/CompressedImage (JPEG)
+    /yam_wrist_camera/camera_info      sensor_msgs/CameraInfo  (camera:=none disables all three)
+    /yam_keyboard/pressed_keys         std_msgs/String         keys currently down (objects:=keyboard)
+    /yam_keyboard/typed                std_msgs/String         one message per key press
+    /yam_keyboard/markers              visualization_msgs/MarkerArray (latched)
+    /tf_static                         <prefix>base -> <prefix>keyboard
   actions
     /yam_arm_controller/follow_joint_trajectory   control_msgs/FollowJointTrajectory
     /yam_gripper_controller/gripper_cmd           control_msgs/GripperCommand (position in m)
@@ -193,6 +200,16 @@ class YamBridge(Node):
         self.declare_parameter("gripper_goal_tolerance", 0.002)  # m
         self.declare_parameter("gripper_timeout", 5.0)   # s
         self.declare_parameter("sim_realtime", True)
+        # wrist webcam + scene objects (see perception.py)
+        self.declare_parameter("camera", "c920")           # c920 | c270 | none
+        self.declare_parameter("camera_rate", 15.0)        # Hz
+        self.declare_parameter("camera_resolution", "")    # "1280x720"; "" = the camera's default
+        self.declare_parameter("camera_device", "0")       # backend:=real: OpenCV device index or path
+        self.declare_parameter("objects", "")              # sim: "", "keyboard", "cube", "cube,keyboard"
+        self.declare_parameter("tool", "none")             # sim: none | stylus
+        self.declare_parameter("keyboard_rate", 50.0)      # Hz, /yam_keyboard/pressed_keys
+        self.declare_parameter("publish_key_markers", True)
+        self.declare_parameter("stats_period", 30.0)       # s between timing reports in the log (0 = off)
 
         gp = self.get_parameter
         self.prefix = gp("prefix").value
@@ -205,6 +222,11 @@ class YamBridge(Node):
         self.has_gripper = self.stroke is not None
         self.backend = gp("backend").value
         self.arm_joints = [f"{self.prefix}joint{i}" for i in range(1, 7)]
+        self.camera = str(gp("camera").value or "none").lower()
+        if self.camera in ("", "false"):
+            self.camera = "none"
+        self.objects = str(gp("objects").value or "")
+        self.tool = str(gp("tool").value or "none").lower()
         self.finger_joints = [f"{self.prefix}joint7", f"{self.prefix}joint8"] if self.has_gripper else []
 
         if robot is None:
@@ -213,9 +235,13 @@ class YamBridge(Node):
             kw = {}
             if self.backend == "sim":
                 kw["realtime"] = bool(gp("sim_realtime").value)
+                kw["camera"] = self.camera
+                kw["objects"] = self.objects
+                kw["tool"] = None if self.tool in ("none", "") else self.tool
             self.get_logger().info(
                 f"creating robot: backend={self.backend} gripper={GRIPPER_I2RT_NAME[self.gripper]}"
-                + (f" channel={gp('channel').value}" if self.backend == "real" else "")
+                + (f" channel={gp('channel').value}" if self.backend == "real" else
+                   f" camera={self.camera} objects={self.objects or 'none'} tool={self.tool}")
             )
             robot = make_robot(
                 self.backend, arm="yam", gripper=GRIPPER_I2RT_NAME[self.gripper],
@@ -244,7 +270,10 @@ class YamBridge(Node):
         self._action_group = ReentrantCallbackGroup()
         self.js_pub = self.create_publisher(JointState, "/joint_states", 10)
         self.target_pub = self.create_publisher(JointState, "~/target_joint_pos", 10)
-        self.create_timer(1.0 / float(gp("command_rate").value), self._control_tick, callback_group=self._timer_group)
+        self._command_period = 1.0 / float(gp("command_rate").value)
+        self._tick_lock = threading.Lock()
+        self._tick_times: list = []
+        self.create_timer(self._command_period, self._control_tick, callback_group=self._timer_group)
         self.create_timer(1.0 / float(gp("rate").value), self._publish_state, callback_group=self._timer_group)
 
         self.arm_action = ActionServer(
@@ -267,6 +296,33 @@ class YamBridge(Node):
                 Float64MultiArray, "/yam_gripper_controller/commands", self._on_gripper_topic, 10,
                 callback_group=self._action_group,
             )
+        # ---- wrist camera + keyboard -----------------------------------------------------------------
+        self.camera_streamer = None
+        self.keyboard = None
+        if self.camera != "none":
+            from yam_sim_ros.perception import WristCameraStreamer
+
+            self.camera_streamer = WristCameraStreamer(
+                self, self.robot, self.backend, self.camera, float(gp("camera_rate").value),
+                str(gp("camera_resolution").value), self.prefix, device=str(gp("camera_device").value),
+            )
+        if "keyboard" in self.objects.lower():
+            if getattr(self.robot, "model", None) is None:
+                self.get_logger().warn("objects:=keyboard only exists in the sim; no keyboard topics on this backend")
+            else:
+                from yam_sim_ros.perception import KeyboardPublisher
+
+                self.keyboard = KeyboardPublisher(
+                    self, self.robot, self.prefix, rate=float(gp("keyboard_rate").value),
+                    publish_markers=bool(gp("publish_key_markers").value),
+                    callback_group=MutuallyExclusiveCallbackGroup(),
+                )
+        stats_period = float(gp("stats_period").value)
+        if stats_period > 0:
+            self._stats_first = True
+            self._stats_timer = self.create_timer(5.0, lambda: self._report_stats(stats_period),
+                                                  callback_group=MutuallyExclusiveCallbackGroup())
+
         self.get_logger().info(
             f"YAM bridge up: {self.backend} backend, joints {self.arm_joints + self.finger_joints}, "
             f"holding={'yes' if self._holding else 'no (floating until the first command)'}"
@@ -300,7 +356,37 @@ class YamBridge(Node):
         return obs
 
     # ---- periodic ------------------------------------------------------------------------------
+    def _report_stats(self, period: float) -> None:
+        """Log the command loop's achieved rate / worst gap and the camera's render time."""
+        if self._stats_first:  # first report after 5 s, then every `period`
+            self._stats_first = False
+            self._stats_timer.cancel()
+            self._stats_timer = self.create_timer(period, lambda: self._report_stats(period),
+                                                  callback_group=MutuallyExclusiveCallbackGroup())
+        with self._tick_lock:
+            ts, self._tick_times = self._tick_times, []
+        parts = []
+        if len(ts) > 2:
+            dt = np.diff(ts)
+            parts.append(
+                f"command loop {1.0 / dt.mean():.1f} Hz (target {1.0 / self._command_period:.0f}), "
+                f"p99 gap {np.percentile(dt, 99) * 1e3:.1f} ms, max gap {dt.max() * 1e3:.1f} ms"
+            )
+        if self.camera_streamer is not None:
+            s = self.camera_streamer.take_stats()
+            if s["render"]:
+                r = np.array(s["render"])
+                parts.append(f"camera render {r.mean():.1f} ms mean / {r.max():.1f} ms max over {len(r)} frames")
+            if s["encode"]:
+                parts.append(f"jpeg {np.mean(s['encode']):.1f} ms")
+            parts.append(f"camera_info msgs {s['frames']}, late frames {s['late']}")
+        if parts:
+            self.get_logger().info("stats: " + "; ".join(parts))
+
     def _control_tick(self) -> None:
+        with self._tick_lock:
+            if len(self._tick_times) < 50000:  # drained by _report_stats
+                self._tick_times.append(time.monotonic())
         with self._lock:
             traj = self._traj
             if traj is not None:
@@ -548,6 +634,8 @@ class YamBridge(Node):
         return res
 
     def close(self) -> None:
+        if getattr(self, "camera_streamer", None) is not None:
+            self.camera_streamer.close()
         try:
             self.robot.close()
         except Exception as e:  # pragma: no cover

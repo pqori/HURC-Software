@@ -3,7 +3,13 @@
     ros2 launch yam_sim_ros sim_bridge.launch.py                       # sim, headless
     ros2 launch yam_sim_ros sim_bridge.launch.py rviz:=true
     ros2 launch yam_sim_ros sim_bridge.launch.py gripper:=crank_4310
+    ros2 launch yam_sim_ros sim_bridge.launch.py objects:=keyboard tool:=stylus rviz:=true
+    ros2 launch yam_sim_ros sim_bridge.launch.py camera:=c270 camera_rate:=30 camera_resolution:=640x360
+    ros2 launch yam_sim_ros sim_bridge.launch.py camera:=none          # no wrist webcam
     ros2 launch yam_sim_ros sim_bridge.launch.py backend:=real channel:=can0   # Linux host with i2rt
+
+`camera` and `tool` go to both the bridge (MuJoCo scene) and xacro (URDF), so the TF tree and
+the sim always agree on where the webcam and the stylus tip are.
 
 There is no MuJoCo viewer option. yam_sim's viewer (yam_sim.scripts.run_sim) builds its own
 robot in its own process and cannot attach to the robot this bridge owns. Use RViz to watch the
@@ -22,12 +28,14 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     gripper = LaunchConfiguration("gripper")
     prefix = LaunchConfiguration("prefix")
+    camera = LaunchConfiguration("camera")
+    tool = LaunchConfiguration("tool")
 
     robot_description = ParameterValue(
         Command([
             PathJoinSubstitution([FindExecutable(name="xacro")]), " ",
             PathJoinSubstitution([FindPackageShare("yam_description"), "urdf", "yam.urdf.xacro"]),
-            " gripper:=", gripper, " prefix:=", prefix,
+            " gripper:=", gripper, " prefix:=", prefix, " camera:=", camera, " tool:=", tool,
         ]),
         value_type=str,
     )
@@ -43,6 +51,13 @@ def generate_launch_description():
             "backend": LaunchConfiguration("backend"),
             "channel": LaunchConfiguration("channel"),
             "rate": ParameterValue(LaunchConfiguration("rate"), value_type=float),
+            "camera": camera,
+            "camera_rate": ParameterValue(LaunchConfiguration("camera_rate"), value_type=float),
+            "camera_resolution": ParameterValue(LaunchConfiguration("camera_resolution"), value_type=str),
+            "camera_device": ParameterValue(LaunchConfiguration("camera_device"), value_type=str),
+            "objects": ParameterValue(LaunchConfiguration("objects"), value_type=str),
+            "tool": tool,
+            "publish_key_markers": ParameterValue(LaunchConfiguration("publish_key_markers"), value_type=bool),
         }],
     )
     rsp = Node(
@@ -69,6 +84,19 @@ def generate_launch_description():
         DeclareLaunchArgument("channel", default_value="can0", description="CAN interface for backend:=real"),
         DeclareLaunchArgument("rate", default_value="50.0", description="/joint_states rate (Hz)"),
         DeclareLaunchArgument("rviz", default_value="false", description="start rviz2"),
+        DeclareLaunchArgument("camera", default_value="c920",
+                              description="wrist webcam: c920 | c270 | none (bridge + URDF)"),
+        DeclareLaunchArgument("camera_rate", default_value="15.0", description="wrist camera rate (Hz)"),
+        DeclareLaunchArgument("camera_resolution", default_value="",
+                              description="e.g. 1280x720 or 640x360; empty = the camera's default (1280x720)"),
+        DeclareLaunchArgument("camera_device", default_value="0",
+                              description="backend:=real: OpenCV webcam index or device path"),
+        DeclareLaunchArgument("objects", default_value="",
+                              description="sim scene objects: '' | keyboard | cube | cube,keyboard"),
+        DeclareLaunchArgument("tool", default_value="none",
+                              description="tool in the gripper: none | stylus (bridge + URDF)"),
+        DeclareLaunchArgument("publish_key_markers", default_value="true",
+                              description="publish /yam_keyboard/markers (objects:=keyboard)"),
         bridge,
         rsp,
         rviz,

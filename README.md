@@ -67,6 +67,13 @@ pixi run -e train train -- --data ../key_dataset/data.yaml --epochs 100   # Ultr
 pixi run -e train detect -- --weights runs/keys/*/weights/best.pt --sim    # or --webcam 0 on the real camera
 ```
 
+From ROS 2, `pixi run bridge -- objects:=keyboard tool:=stylus` (in `yam_sim_ros/`)
+also publishes the wrist camera on `/yam_wrist_camera/image_raw` (+ `/compressed`
+and `/camera_info`, frame `yam_wrist_camera_optical_frame`), the keyboard as a
+static TF and RViz markers, and key presses on `/yam_keyboard/typed`, so a
+dataset can be recorded with `ros2 bag` and the same topics come from the real
+webcam with `backend:=real`.
+
 Labels come from projecting each keycap through the camera model and checking
 visibility against the segmentation render, so they are exact. The sim keycaps
 have no legends and the camera is an ideal pinhole, so plan to fine-tune on

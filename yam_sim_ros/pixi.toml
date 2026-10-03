@@ -25,6 +25,7 @@ ros-humble-rviz2 = "*"
 ros-humble-control-msgs = "*"
 ros-humble-tf2-ros = "*"
 ros-humble-tf2-ros-py = "*"
+ros-humble-visualization-msgs = "*"   # /yam_keyboard/markers (already pulled in by rviz2; explicit here)
 
 # Build toolchain
 colcon-common-extensions = "*"
@@ -38,6 +39,8 @@ pkg-config = "*"
 mujoco = "*"
 numpy = "*"
 pyyaml = "*"
+# JPEG encoding for /yam_wrist_camera/image_raw/compressed (no cv_bridge / OpenCV needed)
+pillow = "*"
 # pytest 9 removed the `path` hook argument that ros-humble-launch-testing's plugin uses
 pytest = "<9"
 
@@ -47,6 +50,9 @@ yam-sim = { path = "../arm_sim", editable = true }
 [activation.env]
 # Keep this workspace's ROS traffic off other machines on the LAN.
 ROS_LOCALHOST_ONLY = "1"
+# Bigger UDP receive buffer so best-effort subscribers (ros2 topic hz, RViz/rqt image views) get
+# the 2.7 MB wrist-camera frames; see config/cyclonedds.xml.
+CYCLONEDDS_URI = "file://$PIXI_PROJECT_ROOT/config/cyclonedds.xml"
 
 [tasks]
 # colcon runs at the repository root (build/ install/ log/ there are gitignored).

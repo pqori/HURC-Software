@@ -24,6 +24,13 @@ Names below assume the default `prefix:=yam_`.
 | `/yam_arm_controller/joint_trajectory` (sub) | `trajectory_msgs/JointTrajectory` | Streaming, as with a JTC. A new message replaces the running trajectory. An empty `points` list means stop and hold. |
 | `/yam_gripper_controller/gripper_cmd` | `control_msgs/action/GripperCommand` | `command.position` = finger opening in m (0 = closed, 0.0475 = open for linear_4310, 0.039574 for crank_4310). Succeeds when within `gripper_goal_tolerance` (2 mm) or when stalled on an object. `max_effort` is ignored: the force is capped by the i2rt gripper force limiter, which is 50 N by default. |
 | `/yam_gripper_controller/commands` (sub) | `std_msgs/Float64MultiArray` | `data[0]` = finger opening in m, as with a `JointGroupPositionController`. |
+| `/yam_wrist_camera/image_raw` (pub) | `sensor_msgs/Image` | Wrist webcam, `rgb8`, `step = 3 * width`, `frame_id = yam_wrist_camera_optical_frame`, at `camera_rate` (15 Hz). See "Wrist camera and keyboard". |
+| `/yam_wrist_camera/image_raw/compressed` (pub) | `sensor_msgs/CompressedImage` | The same frame as JPEG (Pillow, quality 85). |
+| `/yam_wrist_camera/camera_info` (pub) | `sensor_msgs/CameraInfo` | K, P from the camera yml; D = 0, R = I; same stamp as the image. |
+| `/yam_keyboard/pressed_keys` (pub) | `std_msgs/String` | `objects:=keyboard` only. Space-separated names of the keys down right now (`""` if none), every tick of `keyboard_rate` (50 Hz). |
+| `/yam_keyboard/typed` (pub) | `std_msgs/String` | One message per new key press, with the key name (`"g"`, `"space"`, `"lshift"`...). |
+| `/yam_keyboard/markers` (pub, latched) | `visualization_msgs/MarkerArray` | One CUBE per keycap (ns `keys`, id = index in `Keyboard.key_names`), the base plate (ns `base`) and key labels (ns `labels`), in `yam_base`. Pressed keys turn orange (republished on change). |
+| `/tf_static` | | `yam_base` -> `yam_keyboard`: the keyboard body's pose in the sim. |
 
 The `gripper_cmd` action is the interface MoveIt's `GripperCommand` controller
 handler expects. `yam_controllers.yaml` currently defines the gripper as a
@@ -75,6 +82,15 @@ the URDF), `rate` (50), `command_rate` (200), `backend` (`sim` | `real`),
 `goal_time` (1.0), `gripper_goal_tolerance` (0.002), `gripper_timeout` (5.0),
 `sim_realtime` (true).
 
+Camera / scene: `camera` (`c920` | `c270` | `none`), `camera_rate` (15.0 Hz),
+`camera_resolution` (`""` = the camera's default 1280x720; e.g. `640x360`,
+at most 1920x1080, the sim's offscreen buffer), `camera_device` (`"0"`, real
+webcam index or path for `backend:=real`), `objects` (`""` | `keyboard` |
+`cube` | `cube,keyboard`, sim only), `tool` (`none` | `stylus`, sim only),
+`keyboard_rate` (50.0), `publish_key_markers` (true), `stats_period` (30 s
+between timing lines in the log, 0 = off). `camera`, `objects` and `tool` are
+passed to `make_robot(...)`, i.e. they change the MuJoCo scene.
+
 ## Running it
 
 With pixi, from this directory (`pixi.toml` is self-contained, and the sim is
@@ -93,7 +109,9 @@ Plain ROS (any Humble install that also has `mujoco` and `pip install -e arm_sim
 ```bash
 colcon build --symlink-install --packages-select yam_description yam_sim_ros
 source install/setup.bash
-ros2 launch yam_sim_ros sim_bridge.launch.py                 # args: gripper, prefix, backend, channel, rate, rviz
+ros2 launch yam_sim_ros sim_bridge.launch.py                 # args: gripper, prefix, backend, channel, rate, rviz,
+                                                             # camera, camera_rate, camera_resolution, camera_device,
+                                                             # objects, tool, publish_key_markers
 ros2 action send_goal /yam_arm_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory \
   "{trajectory: {joint_names: [yam_joint1, yam_joint2, yam_joint3, yam_joint4, yam_joint5, yam_joint6],
     points: [{positions: [0.5, 1.0, 0.8, -0.3, 0.4, 0.6], time_from_start: {sec: 3}}]}}"
@@ -110,6 +128,106 @@ process and can't attach to the one the bridge owns. `ArmViewer` also sends its
 own commands (VIS mode = gravity-comp idle), which would fight the bridge. Use
 RViz (`rviz:=true`) to watch the arm. Adding a viewer would need a mirror-only
 passive viewer inside the bridge process, run under `mjpython` on macOS.
+
+`pixi run test` runs three files (about 25 s on an M-series Mac):
+`test_bridge_integration.py` (default launch: trajectories, gripper, wrist
+camera image/camera_info/TF), `test_keyboard_integration.py` (launch with
+`objects:=keyboard tool:=stylus camera:=none`: pressed keys, keyboard TF,
+markers, stylus tip TF, and pressing "g" with the stylus through
+FollowJointTrajectory) and `test_description_sync.py` (no ROS graph: the URDF
+camera/stylus frames and `yam_description/config/camera_info_*.yaml` against
+the arm_sim yml files and `assembly.py`).
+
+## Wrist camera and keyboard
+
+The MuJoCo scene has a Logitech webcam on top of the gripper (`camera:=c920`
+by default, or `c270`), and optionally a pressable 104-key keyboard
+(`objects:=keyboard`) and a stylus in the gripper (`tool:=stylus`). The launch
+file passes `camera` and `tool` to both the bridge and xacro, so the URDF
+frames (`yam_wrist_camera_optical_frame`, `yam_stylus_tip`) and the sim always
+agree.
+
+```bash
+ros2 launch yam_sim_ros sim_bridge.launch.py objects:=keyboard tool:=stylus rviz:=true
+ros2 topic hz /yam_wrist_camera/image_raw                  # ~15 Hz
+ros2 topic echo /yam_wrist_camera/camera_info --once
+ros2 run tf2_ros tf2_echo yam_gripper yam_wrist_camera_optical_frame
+ros2 topic echo /yam_keyboard/pressed_keys
+ros2 topic echo /yam_keyboard/typed
+```
+
+At the start pose (all joints 0) the camera looks straight ahead over the
+floor; move the arm so it looks down at the keyboard (e.g. joints
+`[0, 0.76, 1.02, -1.02, 0, 0]` puts the camera 0.3 m above the keyboard, which
+then fills the image). RViz (`rviz:=true`) shows the image in the
+`WristCamera` panel, the keyboard markers and the TF frames.
+
+**How rendering is scheduled.** A dedicated thread (not an executor callback)
+renders at `camera_rate`. `yam_sim.camera.WristCamera` copies the robot state
+under `robot.lock` and renders from the copy, so the physics thread is blocked
+only for that copy. Nothing is rendered while nobody subscribes to
+`image_raw` or `image_raw/compressed`; `camera_info` is published at
+`camera_rate` regardless. The bridge logs a `stats:` line every
+`stats_period` seconds with the command loop's achieved rate and worst gap
+and the render time. Measured on an Apple Silicon Mac at 1280x720, 15 Hz:
+render 8-10 ms mean (30-60 ms worst case), JPEG 3 ms, command loop
+199-200 Hz with a 99th-percentile gap of about 8 ms (6 ms without camera
+subscribers).
+
+**camera_info vs the sim.** The sim is an ideal pinhole: `fx = fy =
+(H / 2) / tan(vfov / 2)`, `cx = (W - 1) / 2`, `cy = (H - 1) / 2`, no
+distortion, with `vfov` from `arm_sim/yam_sim/models/camera/logitech_<model>.yml`.
+That is `yam_sim.camera.camera_spec(model).K(W, H)`, the matrix MuJoCo renders
+with, and what `camera_info` carries (at the chosen `camera_resolution`).
+For the C920 at 1280x720, `fx = fy = 906.78`, `cx = 639.5`, `cy = 359.5`.
+`yam_description/config/camera_info_c920.yaml` / `_c270.yaml` hold the same
+numbers in `camera_calibration_parsers` format. Projecting a point in
+`yam_wrist_camera_optical_frame` with K gives its pixel in `image_raw`.
+
+**Recording a dataset.** Record images, camera_info, TF and the keyboard
+topics together (use the compressed topic to keep bags small, ~100 KB per
+frame instead of 2.7 MB):
+
+```bash
+ros2 bag record -o keys_run1 \
+  /yam_wrist_camera/image_raw/compressed /yam_wrist_camera/camera_info \
+  /tf /tf_static /joint_states /yam_keyboard/pressed_keys /yam_keyboard/typed /yam_keyboard/markers
+# raw frames instead: replace .../compressed with /yam_wrist_camera/image_raw (40 MB/s at 15 Hz)
+ros2 bag info keys_run1
+```
+
+With TF, camera_info and the markers in the bag, every key's 3D box can be
+projected into every frame offline (the same thing
+`yam_sim.scripts.generate_key_dataset` does in-process; that script is
+the faster way to make a large labelled training set, the bag path is for
+recording what the ROS stack actually saw).
+
+**Best-effort subscribers and big images (CycloneDDS).** A 1280x720 frame is
+about 300 UDP fragments. With the macOS default socket receive buffer a
+BEST_EFFORT subscriber (`ros2 topic hz`, rqt_image_view) loses a fragment of
+every frame and receives nothing. The pixi env therefore sets
+`CYCLONEDDS_URI` to `config/cyclonedds.xml`, which requests an 8 MB receive
+buffer. Outside pixi, export it yourself, use `camera_resolution:=640x360`,
+or subscribe with RELIABLE QoS (the RViz config and the tests do). On Linux
+also raise `net.core.rmem_max`.
+
+**Real webcam (`backend:=real`).** The bridge uses
+`yam_sim.camera.RealWebcam` (OpenCV `VideoCapture`, device `camera_device`)
+and publishes the same three topics with the same frame and the nominal
+intrinsics of the selected model at the resolution the camera actually
+delivers. OpenCV is not in this pixi env; without it the bridge logs a
+warning and publishes no camera topics (`pip install
+opencv-python-headless` to enable it; untested on hardware). The nominal K
+ignores lens distortion and autofocus: calibrate the real camera
+(`camera_calibration`) for anything metric. For the URDF frame to be right,
+the real webcam must be mounted as in the yml: lens centre at (0, -0.052,
+0.075) m in the gripper frame (C920; C270: y = -0.053), on the gripper's top
+(-Y) face, pitched 25 deg towards the fingers about gripper +X, image
+upright with the fingers at the bottom of the image. See
+`yam_description/README.md`.
+
+The keyboard, `objects` and `tool` exist only in the sim. On the real
+backend `objects:=keyboard` logs a warning and publishes no keyboard topics.
 
 ## Talking to it from MoveIt / the base station
 
