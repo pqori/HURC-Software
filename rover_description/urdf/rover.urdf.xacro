@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="HURCRover">
   <xacro:arg name="use_gazebo" default="false" />
+  <!-- Controller parameters loaded by gz_ros2_control in simulation. The
+       rover_sim package passes an overlay with wheel geometry that matches
+       the meshes; the default keeps the hardware yaml. -->
+  <xacro:arg name="controllers_file" default="$(find rover_description)/config/rover_controllers.yaml" />
 
   <!-- Import RRBot ros2_control description -->
   <xacro:include filename="rover.control.xacro" />
@@ -617,25 +621,137 @@
     <!-- ros_control plugin -->
     <gazebo>
       <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-        <parameters>$(find rover_description)/config/rover_controllers.yaml</parameters>
+        <parameters>$(arg controllers_file)</parameters>
       </plugin>
 
       <!-- Should probably optimize the collision shapes in the future -->
       <self_collide>true</self_collide>
     </gazebo>
   </xacro:if>
-  <xacro:unless value="$(arg use_gazebo)">
-    <xacro:include filename="$(find rover_description)/urdf/zed/zed_macro.urdf.xacro"/>
-    <xacro:zed_camera name="Front_Zed" model="zed2i" enable_gnss="false">
-      <gnss_origin/>
-    </xacro:zed_camera>
-    <joint name="Front_Zed_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="Front_Zed_camera_link"/>
-      <origin
-        xyz="0.55 0 -0.18"
-        rpy="0 0 0"
-      />
+
+  <!-- ZED 2i camera frames: used by both hardware and simulation. -->
+  <xacro:include filename="$(find rover_description)/urdf/zed/zed_macro.urdf.xacro"/>
+  <xacro:zed_camera name="Front_Zed" model="zed2i" enable_gnss="false">
+    <gnss_origin/>
+  </xacro:zed_camera>
+  <joint name="Front_Zed_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="Front_Zed_camera_link"/>
+    <origin
+      xyz="0.55 0 -0.18"
+      rpy="0 0 0"
+    />
+  </joint>
+
+  <xacro:if value="$(arg use_gazebo)">
+    <!-- Simulated ZED 2i (Gazebo Harmonic sensors). The real camera's
+         zed_wrapper node publishes the IMU frame itself, so the IMU link only
+         exists in simulation (identity offset from the left camera, close to
+         the ZED 2i calibration). -->
+    <link name="Front_Zed_imu_link"/>
+    <joint name="Front_Zed_imu_joint" type="fixed">
+      <parent link="Front_Zed_left_camera_frame"/>
+      <child link="Front_Zed_imu_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
-  </xacro:unless>
+
+    <!-- Shared camera parameters (gz cameras look along the link's +X, so the
+         sensors sit on the *_camera_frame links and gz_frame_id stamps the
+         messages with the ROS optical frames). -->
+    <xacro:property name="zed_sim_width" value="640"/>
+    <xacro:property name="zed_sim_height" value="360"/>
+    <xacro:property name="zed_sim_hfov" value="1.57"/>
+    <xacro:property name="zed_sim_near" value="0.3"/>
+    <xacro:property name="zed_sim_far" value="20.0"/>
+    <!-- Depth / point cloud at half resolution (like zed_wrapper's
+         downscaled depth): a 640x360 cloud is 5.5 MB per message and Fast DDS
+         on a laptop delivered it at only ~4.5 Hz; 320x180 (1.4 MB) keeps the
+         full 10 Hz and is plenty for a Nav2 voxel layer. -->
+    <xacro:property name="zed_sim_depth_width" value="320"/>
+    <xacro:property name="zed_sim_depth_height" value="180"/>
+
+    <xacro:macro name="zed_sim_camera_block">
+      <camera>
+        <horizontal_fov>${zed_sim_hfov}</horizontal_fov>
+        <image>
+          <width>${zed_sim_width}</width>
+          <height>${zed_sim_height}</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>${zed_sim_near}</near>
+          <far>${zed_sim_far}</far>
+        </clip>
+      </camera>
+    </xacro:macro>
+
+    <gazebo reference="Front_Zed_left_camera_frame">
+      <!-- Left RGB image, 15 Hz -->
+      <sensor name="zed_left_camera" type="camera">
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <visualize>false</visualize>
+        <topic>zed/left/image</topic>
+        <gz_frame_id>Front_Zed_left_camera_optical_frame</gz_frame_id>
+        <xacro:zed_sim_camera_block/>
+      </sensor>
+      <!-- Depth + point cloud from the left camera, 10 Hz, 320x180 (an
+           rgbd_camera has a single update rate, so it is a separate sensor
+           from the 15 Hz left RGB camera). Publishes
+           zed/rgbd/{image,depth_image,points,camera_info}. -->
+      <sensor name="zed_rgbd_camera" type="rgbd_camera">
+        <always_on>true</always_on>
+        <update_rate>10</update_rate>
+        <visualize>false</visualize>
+        <topic>zed/rgbd</topic>
+        <!-- Gazebo Harmonic publishes the rgbd point cloud in the sensor's
+             body convention (x forward, y left, z up), not the optical
+             convention, so the cloud (and depth image, same sensor) are
+             stamped with the x-forward Front_Zed_left_camera_frame; TF then
+             places the points correctly. Stamping them with the optical frame
+             would rotate the cloud 90 deg. -->
+        <gz_frame_id>Front_Zed_left_camera_frame</gz_frame_id>
+        <camera>
+          <horizontal_fov>${zed_sim_hfov}</horizontal_fov>
+          <image>
+            <width>${zed_sim_depth_width}</width>
+            <height>${zed_sim_depth_height}</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>${zed_sim_near}</near>
+            <far>${zed_sim_far}</far>
+          </clip>
+          <depth_camera>
+            <clip>
+              <near>${zed_sim_near}</near>
+              <far>${zed_sim_far}</far>
+            </clip>
+          </depth_camera>
+        </camera>
+      </sensor>
+    </gazebo>
+
+    <gazebo reference="Front_Zed_right_camera_frame">
+      <!-- Right RGB image, 0.12 m to the right of the left camera, 15 Hz -->
+      <sensor name="zed_right_camera" type="camera">
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <visualize>false</visualize>
+        <topic>zed/right/image</topic>
+        <gz_frame_id>Front_Zed_right_camera_optical_frame</gz_frame_id>
+        <xacro:zed_sim_camera_block/>
+      </sensor>
+    </gazebo>
+
+    <gazebo reference="Front_Zed_imu_link">
+      <sensor name="zed_imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>100</update_rate>
+        <visualize>false</visualize>
+        <topic>zed/imu</topic>
+        <gz_frame_id>Front_Zed_imu_link</gz_frame_id>
+      </sensor>
+    </gazebo>
+  </xacro:if>
 </robot>
