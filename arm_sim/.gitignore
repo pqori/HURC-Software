@@ -1,0 +1,5 @@
+# MuJoCo writes renderer warnings here
+MUJOCO_LOG.TXT
+# Ultralytics outputs / downloaded weights when run from arm_sim/
+runs/
+*.pt

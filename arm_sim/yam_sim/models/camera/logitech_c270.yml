@@ -1,0 +1,33 @@
+# Logitech C270 (HD Webcam) mounted on top of the YAM linear_4310 gripper.
+# Same mount as the C920 (lens 1 mm higher for the taller head); see logitech_c920.yml for the frame conventions.
+name: logitech_c270
+key: c270
+frame_name: wrist_camera_optical_frame
+
+mount:
+  parent: gripper
+  pos: [0.0, -0.053, 0.075]
+  quat_wxyz: [0.97629601, -0.21643961, 0.0, 0.0]    # -25 deg about gripper +X
+  tilt_deg: 25.0
+
+body:
+  size: [0.073, 0.032, 0.026]
+  center_offset: [0.0, 0.0, -0.017]
+  lens_radius: 0.007
+  lens_length: 0.004
+  mass: 0.075
+  rgba: [0.08, 0.08, 0.09, 1.0]
+  lens_rgba: [0.02, 0.02, 0.03, 1.0]
+
+optics:
+  diagonal_fov_deg: 55.0
+  hfov_deg: 48.809
+  vfov_deg: 28.634
+  aspect: [16, 9]
+  default_resolution: [1280, 720]
+  distortion_model: plumb_bob
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+modes:
+  - {width: 1280, height: 720, fx: 1410.582, fy: 1410.582, cx: 639.5, cy: 359.5}
+  - {width: 640, height: 360, fx: 705.291, fy: 705.291, cx: 319.5, cy: 179.5}

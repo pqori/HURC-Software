@@ -1,0 +1,44 @@
+# Logitech C920 (HD Pro Webcam) mounted on top of the YAM linear_4310 gripper.
+# This file is the single source of truth for the wrist camera: yam_sim.camera reads it to build
+# the MuJoCo <camera>, and the ROS package can read the same numbers for its camera_info / TF.
+name: logitech_c920
+key: c920
+frame_name: wrist_camera_optical_frame   # ROS optical frame: +Z forward, +X right, +Y down
+
+# Pose of the optical frame relative to the `gripper` mount body (the tool flange on joint6).
+# Gripper frame: +Z = approach (towards the fingertips), +X = right, +Y = down; at home (q = 0)
+# the gripper points along world +X and gripper -Y is world +Z (up). The camera sits on the -Y
+# ("top") face of the gripper housing with its lens 7 cm behind the fingertip ends (just in front
+# of the housing's top plate, so the housing does not block the view), and is pitched 25 deg towards
+# the fingers so the optical axis crosses the gripper axis 4.2 cm beyond grasp_site.
+mount:
+  parent: gripper
+  pos: [0.0, -0.052, 0.075]                         # m, lens centre in the gripper frame
+  quat_wxyz: [0.97629601, -0.21643961, 0.0, 0.0]    # -25 deg about gripper +X (view tilted towards +Y)
+  tilt_deg: 25.0
+
+# Simple visual/inertial model: a dark box (the camera head) with a cylinder lens and a bracket.
+body:
+  size: [0.094, 0.029, 0.024]     # m: width (along gripper X), height, depth (along the optical axis)
+  center_offset: [0.0, 0.0, -0.016]   # box centre in the optical frame (behind the lens)
+  lens_radius: 0.009
+  lens_length: 0.004
+  mass: 0.162                     # kg (datasheet weight without the clip/cable)
+  rgba: [0.06, 0.06, 0.07, 1.0]
+  lens_rgba: [0.02, 0.02, 0.03, 1.0]
+
+optics:
+  diagonal_fov_deg: 78.0
+  hfov_deg: 70.428                # at 16:9
+  vfov_deg: 43.307                # = MuJoCo camera fovy
+  aspect: [16, 9]
+  default_resolution: [1280, 720]
+  distortion_model: plumb_bob
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0]   # sim is an ideal pinhole; calibrate the real camera
+
+# Pinhole intrinsics, OpenCV/ROS convention (pixel centres at integer coordinates, so an image
+# centred on the optical axis has cx = (W - 1) / 2). fx = fy = (H / 2) / tan(vfov / 2).
+modes:
+  - {width: 1920, height: 1080, fx: 1360.182, fy: 1360.182, cx: 959.5, cy: 539.5}
+  - {width: 1280, height: 720, fx: 906.788, fy: 906.788, cx: 639.5, cy: 359.5}
+  - {width: 640, height: 360, fx: 453.394, fy: 453.394, cx: 319.5, cy: 179.5}

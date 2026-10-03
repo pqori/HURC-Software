@@ -2,6 +2,7 @@
 
     pixi run render                      # writes arm_sim/docs/img/*.png
     pixi run render --out /tmp/imgs --width 800 --height 600
+    pixi run render --keyboard           # also the keyboard/stylus scene, a wrist-camera view and a labelled frame
 
 Each pose is reached by PD control in the physics sim (not by teleporting), so the pictures show
 the settled state, including any gravity sag.
@@ -53,12 +54,66 @@ def poses(k: Kinematics):
     ]
 
 
+def render_keyboard(out: str, width: int, height: int) -> list:
+    """Keyboard + stylus scene shot, a wrist-camera view and a labelled dataset frame."""
+    from yam_sim.camera import OPTICAL_SITE, WristCamera, save_image
+    from yam_sim.keyboard import Keyboard
+    from yam_sim.scripts.generate_key_dataset import draw_boxes, label_keys, look_at_pose
+    from yam_sim.scripts.press_keys import press_rotation
+
+    robot = YamSimRobot(start_thread=False, zero_gravity_mode=False, objects="keyboard", tool="stylus",
+                        keyboard={"textured": False})
+    model = robot.model
+    k = Kinematics(model=model)
+    kb = Keyboard.from_model(model, robot.data)
+    opt = mujoco.MjvOption()
+    opt.geomgroup[:] = 0
+    opt.geomgroup[0] = opt.geomgroup[2] = 1
+    opt.sitegroup[:] = 0
+    written = []
+    # 1) stylus pressing "g"
+    top = kb.key_pose("g")[:3, 3]
+    T = np.eye(4)
+    T[:3, :3] = press_rotation(top[:2])
+    T[:3, 3] = top + [0, 0, 0.004]
+    _, q = k.ik(T, "stylus_tip", init_q=[0, 1, 1, -0.6, 0, 0], restarts=4)
+    robot.reset(np.append(q, 0.0), hold=True)
+    robot.step_for(1.0)
+    renderer = mujoco.Renderer(model, height=height, width=width)
+    cam = mujoco.MjvCamera()
+    cam.azimuth, cam.elevation, cam.distance, cam.lookat[:] = 140, -28, 0.95, [0.28, 0.02, 0.12]
+    renderer.update_scene(robot.data, camera=cam, scene_option=opt)
+    path = os.path.join(out, "yam_keyboard_stylus.png")
+    write_png(path, renderer.render())
+    written.append(path)
+    renderer.close()
+    # 2) wrist-camera view from 0.28 m above the keyboard, looking slightly forward
+    target = kb.key_pose("t")[:3, 3]
+    Tc = look_at_pose(target + [-0.08, 0.0, 0.28], target, np.array([-1.0, 0, 0]), 0.0)
+    _, q = k.ik(Tc, OPTICAL_SITE, init_q=[0, 1, 1, -0.6, 0, 0], restarts=4)
+    robot.reset(np.append(q, 0.0), hold=True)
+    with WristCamera(robot) as wc:
+        rgb = wc.render()
+        path = os.path.join(out, "yam_wrist_camera.jpg")
+        save_image(path, rgb, quality=85)
+        written.append(path)
+        # 3) the same frame with dataset labels
+        seg = wc.segmentation()
+        labels = label_keys(wc, kb, seg, kb.geom_to_key_index())
+        path = os.path.join(out, "yam_key_labels.jpg")
+        save_image(path, draw_boxes(rgb, labels), quality=80)
+        written.append(path)
+    robot.close()
+    return written
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--out", default=DEFAULT_OUT)
     p.add_argument("--gripper", default="linear_4310")
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=480)
+    p.add_argument("--keyboard", action="store_true", help="also render the keyboard / wrist-camera images")
     args = p.parse_args(argv)
     os.makedirs(args.out, exist_ok=True)
 
@@ -83,6 +138,8 @@ def main(argv=None) -> int:
         write_png(path, img)
         written.append((path, os.path.getsize(path)))
     renderer.close()
+    if args.keyboard:
+        written += [(pth, os.path.getsize(pth)) for pth in render_keyboard(args.out, args.width, args.height)]
     for path, size in written:
         print(f"{path}  {size / 1024:.0f} KB")
     return 0

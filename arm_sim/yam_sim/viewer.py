@@ -25,6 +25,8 @@ Keys (most letters are taken by MuJoCo's own visualisation toggles, so these avo
   Insert          glide to the "ready" pose             [CONTROL]
   ;  /  '         halve / double the jog and nudge step
   Backspace       (sim) reset the simulation to home
+  C               toggle the view: free camera <-> wrist webcam (when the scene has one).
+                  MuJoCo also binds C to its contact-point display; [ / ] cycle model cameras too.
 On a Mac keyboard: fn+Up/Down = PgUp/PgDn, fn+Left/Right = Home/End, and Insert does not exist,
 so use the Python API or teleop for the ready pose.
 """
@@ -48,13 +50,13 @@ from yam_sim.motion import RateLimitedTarget
 
 KEY = dict(
     SPACE=32, EQUAL=61, MINUS=45, KP_ADD=334, KP_SUB=333, RIGHT=262, LEFT=263, DOWN=264, UP=265,
-    PAGE_UP=266, PAGE_DOWN=267, HOME=268, END=269, INSERT=260, SEMICOLON=59, APOSTROPHE=39, BACKSPACE=259,
+    PAGE_UP=266, PAGE_DOWN=267, HOME=268, END=269, INSERT=260, SEMICOLON=59, APOSTROPHE=39, BACKSPACE=259, C=67,
 )
 HOME_Q = np.zeros(6)
 READY_Q = np.array([0.0, 1.0, 1.0, -0.3, 0.0, 0.0])
 
-HELP_LEFT = "SPACE\n1-6 / 7\n= / -\nArrows\nPgUp/PgDn\nEnd\nHome\n; / '\nBackspace"
-HELP_RIGHT = "VIS <-> CONTROL\nselect joint / gripper\njog selected\nEE x / y\nEE z\ngripper toggle\nhome pose\nstep x0.5 / x2\nreset (sim)"
+HELP_LEFT = "SPACE\n1-6 / 7\n= / -\nArrows\nPgUp/PgDn\nEnd\nHome\n; / '\nBackspace\nC"
+HELP_RIGHT = "VIS <-> CONTROL\nselect joint / gripper\njog selected\nEE x / y\nEE z\ngripper toggle\nhome pose\nstep x0.5 / x2\nreset (sim)\nfree / wrist camera"
 
 
 def ensure_mjpython() -> None:
@@ -88,6 +90,7 @@ class ArmViewer:
         control_rate: float = 100.0,
         render_rate: float = 60.0,
         start_in_control: bool = False,
+        scene_kwargs: Optional[dict] = None,
     ):
         self.robot = robot
         info = robot.get_robot_info()
@@ -97,7 +100,7 @@ class ArmViewer:
         if self.is_sim and hasattr(robot, "model"):
             self.model = copy.copy(robot.model)  # own copy: the physics thread edits actuator params live
         else:
-            self.model, _ = load_scene(arm, gripper)
+            self.model, _ = load_scene(arm, gripper, **(scene_kwargs or {}))
         self.data = mujoco.MjData(self.model)
         self.kin = Kinematics(model=copy.copy(self.model))
         self.ee_site = ee_site
@@ -123,6 +126,19 @@ class ArmViewer:
         self._status = ""
         self._ik_ok = True
         self._start_in_control = start_in_control
+        # Wrist camera and keyboard (optional parts of the scene)
+        self.wrist_cam_id = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_CAMERA, "wrist_cam")
+        from yam_sim.camera import model_camera_key
+
+        self.camera_key = model_camera_key(m)
+        self.view = "FREE"
+        self.keyboard = None
+        if mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_TEXT, "keyboard_layout") >= 0:
+            from yam_sim.keyboard import Keyboard
+
+            self.keyboard = Keyboard.from_model(m, self.data)
+        self._typed: list = []
+        self._down: set = set()
 
     def _has_joint(self, name: str) -> bool:
         return mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name) >= 0
@@ -194,6 +210,9 @@ class ArmViewer:
             self.jog_step = float(np.clip(self.jog_step * f, 0.005, 0.5))
             self.ee_step = float(np.clip(self.ee_step * f, 0.001, 0.1))
             return
+        if key == K["C"]:
+            self._toggle_view()
+            return
         if key == K["BACKSPACE"] and self.is_sim and hasattr(self.robot, "reset"):
             self.robot.reset()
             if self.mode == "CONTROL":
@@ -225,6 +244,32 @@ class ArmViewer:
         elif key in (K["HOME"], K["INSERT"]):
             goal[:6] = HOME_Q if key == K["HOME"] else READY_Q
             self._set_mocap(self._ee_pose(goal[:6]))
+
+    def _toggle_view(self) -> None:
+        if self.wrist_cam_id < 0 or self.viewer is None:
+            self._status = "no wrist camera in this scene (--camera c920|c270)"
+            return
+        cam = self.viewer.cam
+        if self.view == "FREE":
+            cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+            cam.fixedcamid = self.wrist_cam_id
+            self.view = "WRIST"
+        else:
+            cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+            self.view = "FREE"
+
+    def _keyboard_status(self) -> str:
+        if self.keyboard is None:
+            return ""
+        now = set(self.keyboard.pressed_keys(self.data))
+        for k in self.keyboard.key_names:
+            if k in now and k not in self._down:
+                self._typed.append(k)
+        self._down = now
+        from yam_sim.keyboard import keys_to_text
+
+        typed = keys_to_text(self._typed[-30:])
+        return f"\nkeyboard: down [{' '.join(sorted(now))}]  typed {typed!r}"
 
     def _solve_ik_to(self, T: np.ndarray) -> None:
         ok, q = self.kin.ik(T, self.ee_site, init_q=self.target.goal[:6], restarts=0, max_iters=60)
@@ -289,6 +334,9 @@ class ArmViewer:
         T = self._ee_pose(q[:6])
         left = hdr + "\n      q       q_des    tau(Nm)\n" + "\n".join(rows)
         left += f"\nEE  {T[0, 3]:+.3f} {T[1, 3]:+.3f} {T[2, 3]:+.3f} m"
+        if self.camera_key:
+            left += f"\ncamera: {self.camera_key}  view {self.view} (C toggles)"
+        left += self._keyboard_status()
         if self._status:
             left += "\n" + self._status
         self.viewer.set_texts(

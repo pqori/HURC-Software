@@ -86,7 +86,10 @@ def add_robot_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         action="store_true",
         help="start in zero-gravity (gravity-comp only) mode instead of holding the current pose",
     )
-    g.add_argument("--objects", action="store_true", help="(sim) add a graspable cube to the scene")
+    g.add_argument("--objects", nargs="?", const="cube", default=None,
+                   help="(sim) add objects: --objects (a cube), --objects keyboard, --objects cube,keyboard")
+    g.add_argument("--camera", default="c920", help="(sim) wrist webcam model: c920 | c270 | none (default: c920)")
+    g.add_argument("--tool", default=None, help="(sim) tool held by the gripper: stylus (default: none)")
     return parser
 
 
@@ -96,6 +99,8 @@ def robot_from_args(args: argparse.Namespace, **sim_kw: Any):
         raise SystemExit("Pass either --sim or --channel, not both.")
     if args.channel:
         return make_robot("real", args.arm, args.gripper, channel=args.channel, zero_gravity_mode=args.zero_gravity)
+    sim_kw.setdefault("camera", getattr(args, "camera", "c920"))
+    sim_kw.setdefault("tool", getattr(args, "tool", None))
     return make_robot("sim", args.arm, args.gripper, zero_gravity_mode=args.zero_gravity, objects=args.objects, **sim_kw)
 
 

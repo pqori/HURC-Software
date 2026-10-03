@@ -83,8 +83,11 @@ class YamSimRobot:
         joint_limit_buffer: float = 0.15,
         quantize_feedback: bool = False,
         speed_torque_limit: bool = True,
-        objects: bool = False,
+        objects: Union[bool, str, Sequence[str], None] = False,
         self_collision: bool = False,
+        camera: Optional[str] = "c920",
+        tool: Optional[str] = None,
+        keyboard: Optional[dict] = None,
     ) -> None:
         """
         Args:
@@ -115,8 +118,14 @@ class YamSimRobot:
             speed_torque_limit: model the torque-speed curve: the torque available in the
                 direction of motion falls linearly from the limit at standstill to zero at
                 ``MotorSpec.no_load_speed``.
-            objects: add a graspable cube to the scene.
+            objects: ``"cube"`` (or True) adds a graspable cube, ``"keyboard"`` a pressable keyboard,
+                ``"cube,keyboard"`` both.
             self_collision: let the arm's links collide with each other.
+            camera: wrist webcam on the gripper (``"c920"`` default, ``"c270"``, ``"none"``). Its
+                mass is part of the model, so the sim's gravity comp includes it. On hardware,
+                tell i2rt about it too (see the README, "Wrist camera and keyboard").
+            tool: ``"stylus"`` adds a key-pressing stylus held by the gripper (site ``stylus_tip``).
+            keyboard: options for :class:`yam_sim.keyboard.Keyboard` (layout, pos, yaw, ...).
         """
         self._arm_name = arm
         self._gripper_name = gripper
@@ -129,6 +138,9 @@ class YamSimRobot:
             timestep=timestep,
             objects=objects,
             self_collision=self_collision,
+            camera=camera,
+            tool=tool,
+            keyboard=keyboard,
         )
         self._model, self._scene = load_scene(arm, gripper, **scene_kwargs)
         self._scene_kwargs = scene_kwargs

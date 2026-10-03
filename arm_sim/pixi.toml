@@ -11,6 +11,7 @@ mujoco = ">=3.3.5"
 numpy = ">=1.26"
 pyyaml = ">=6"
 pytest = ">=8"
+pillow = ">=10"
 
 [pypi-dependencies]
 yam-sim = { path = ".", editable = true }
@@ -24,3 +25,31 @@ smoke = "python -m yam_sim.scripts.smoke_test"
 go-to = "python -m yam_sim.scripts.go_to"
 play = "python -m yam_sim.scripts.play_trajectory"
 sliders = "python -m yam_sim.scripts.slider_panel"
+press = "python -m yam_sim.scripts.press_keys"
+dataset = "python -m yam_sim.scripts.generate_key_dataset"
+
+# Optional environments. The default one stays light (MuJoCo + NumPy + Pillow).
+#   pixi run -e webcam python -m yam_sim.camera --webcam 0     # OpenCV only, for a real USB webcam
+#   pixi run -e train train -- --data <dataset>/data.yaml      # Ultralytics YOLO + PyTorch (+ OpenCV)
+[feature.webcam.pypi-dependencies]
+opencv-python-headless = ">=4.8"
+
+# PyTorch comes from conda-forge so that it shares the environment's OpenMP runtime with NumPy
+# (the PyPI wheel bundles its own libomp, which aborts at import on macOS). Ultralytics itself is
+# PyPI-only; pixi satisfies its torch requirement with the conda package.
+[feature.train.dependencies]
+pytorch = ">=2.4"
+torchvision = ">=0.19"
+
+[feature.train.pypi-dependencies]
+ultralytics = ">=8.3"
+
+[feature.train.tasks]
+train = "python -m yam_sim.scripts.train_key_detector"
+detect = "python -m yam_sim.scripts.detect_keys"
+
+[environments]
+default = { solve-group = "default" }
+webcam = { features = ["webcam"], solve-group = "default" }
+train = { features = ["train"] }
+

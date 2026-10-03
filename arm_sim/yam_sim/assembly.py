@@ -19,6 +19,9 @@ Added on top of the i2rt model:
   are all in motor units (rad, rad/s, N m), the same as the real DM4310.
 * joint ``armature`` (reflected rotor inertia) and ``frictionloss`` (Coulomb friction)
 * a floor, lights, an optional graspable cube, and a ``target`` mocap body for IK dragging
+* optionally: a Logitech wrist webcam on top of the gripper (``camera="c920"`` by default, see
+  :mod:`yam_sim.camera`), a pressable ANSI keyboard (``objects="keyboard"``, see
+  :mod:`yam_sim.keyboard`) and a stylus held by the gripper (``tool="stylus"``)
 """
 
 from __future__ import annotations
@@ -61,6 +64,37 @@ FINGER_PADS = {
     },
 }
 GRASP_SITE = "grasp_site"
+STYLUS_TIP_SITE = "stylus_tip"
+
+# Stylus held by the gripper, in the `gripper` mount frame (+Z = approach). Fingertip ends are at
+# z = 0.1447; the rod (8 mm diameter, 10 cm long including the rubber tip) runs along the gripper
+# axis and its tip is 4 cm past the fingertips.
+STYLUS = {"radius": 0.004, "z0": 0.085, "tip_radius": 0.0045, "tip_z": 0.185}
+# grasp_site's orientation relative to the mount (Rz(90 deg)); stylus_tip uses the same, so both
+# sites have +Z = approach and the same x/y axes.
+_SITE_QUAT = "0.70710678 0 0 0.70710678"
+
+
+def parse_objects(objects) -> Tuple[str, ...]:
+    """Normalise the ``objects`` option: False/None/"none" -> (), True/"cube" -> ("cube",),
+    "keyboard", "cube,keyboard" or a list -> the named objects."""
+    if objects is None or objects is False:
+        return ()
+    if objects is True:
+        return ("cube",)
+    items = objects.replace("+", ",").split(",") if isinstance(objects, str) else list(objects)
+    out = []
+    for it in items:
+        it = str(it).strip().lower()
+        if it in ("", "none", "false"):
+            continue
+        if it in ("true", "1"):
+            it = "cube"
+        if it not in ("cube", "keyboard"):
+            raise ValueError(f"unknown object {it!r}; use 'cube' and/or 'keyboard'")
+        if it not in out:
+            out.append(it)
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -207,9 +241,12 @@ def build_scene_tree(
     friction: Union[bool, Sequence[float]] = True,
     gripper_friction: float = 0.3,
     timestep: float = 0.001,
-    objects: bool = False,
+    objects: Union[bool, str, Sequence[str], None] = False,
     floor: bool = True,
     self_collision: bool = False,
+    camera: Optional[str] = "c920",
+    tool: Optional[str] = None,
+    keyboard: Optional[dict] = None,
 ) -> Tuple[ET.ElementTree, SceneInfo]:
     """Build the scene MJCF tree.
 
@@ -221,7 +258,15 @@ def build_scene_tree(
             ``False`` turns friction off, or pass a 6-vector (N m).
         gripper_friction: Coulomb friction of the gripper drive, at the motor (N m).
         timestep: physics timestep (s).
-        objects: add a 4 cm cube in front of the robot for grasping tests.
+        objects: ``"cube"`` (or ``True``) adds a 4 cm cube in front of the robot for grasping
+            tests, ``"keyboard"`` a pressable ANSI keyboard (see :mod:`yam_sim.keyboard`); both:
+            ``"cube,keyboard"`` or a list.
+        camera: wrist webcam model on the gripper: ``"c920"`` (default), ``"c270"`` or ``"none"``.
+            Adds its mass to the gripper (so gravity comp in the sim includes it).
+        tool: ``"stylus"`` puts an 8 mm x 10 cm rod in the gripper with a ``stylus_tip`` site 4 cm
+            past the fingertips, for pressing single keys. ``None`` = nothing.
+        keyboard: keyword arguments for :class:`yam_sim.keyboard.Keyboard` (``layout="full"|"tkl"``,
+            ``pos``, ``yaw``, colours, ``color_jitter``, ``textured``).
         floor: add a ground plane.
         self_collision: allow contacts between the arm's own links. Off by default because the
             upstream collision meshes are the visual meshes, which are not convex-friendly. Contact with the floor
@@ -264,7 +309,7 @@ def build_scene_tree(
     root.insert(1, option)
     visual = ET.fromstring(
         """<visual>
-            <global offwidth="1280" offheight="960" azimuth="150" elevation="-20"/>
+            <global offwidth="1920" offheight="1080" azimuth="150" elevation="-20"/>
             <headlight ambient="0.35 0.35 0.35" diffuse="0.5 0.5 0.5" specular="0.1 0.1 0.1"/>
             <quality shadowsize="4096"/>
             <map znear="0.01"/>
@@ -286,7 +331,8 @@ def build_scene_tree(
     worldbody.insert(1, ET.fromstring('<light name="fill" pos="-0.8 0.6 1.2" dir="0.5 -0.3 -1" diffuse="0.3 0.3 0.3" castshadow="false"/>'))
     if floor:
         worldbody.insert(2, ET.fromstring('<geom name="floor" type="plane" size="2 2 0.05" material="grid" contype="2" conaffinity="1" group="0"/>'))
-    if objects:
+    object_set = parse_objects(objects)
+    if "cube" in object_set:
         worldbody.append(
             ET.fromstring(
                 """<body name="cube" pos="0.42 0 0.02">
@@ -306,6 +352,51 @@ def build_scene_tree(
             </body>"""
         )
     )
+
+    custom = None
+    if "keyboard" in object_set:
+        from yam_sim.keyboard import Keyboard
+
+        kb = keyboard if isinstance(keyboard, Keyboard) else Keyboard(**(keyboard or {}))
+        worldbody.append(kb.mjcf())
+        for a in kb.assets():
+            asset.append(a)
+        # Extra floor materials for domain randomisation (the dataset generator swaps them).
+        asset.append(ET.fromstring('<texture name="floor_noise" type="2d" builtin="flat" rgb1="0.55 0.45 0.35" rgb2="0.3 0.25 0.2" mark="random" random="0.3" markrgb="0.25 0.2 0.15" width="256" height="256"/>'))
+        asset.append(ET.fromstring('<material name="floor_noise" texture="floor_noise" texrepeat="6 6" reflectance="0.02"/>'))
+        asset.append(ET.fromstring('<texture name="floor_check" type="2d" builtin="checker" rgb1="0.8 0.8 0.78" rgb2="0.6 0.6 0.58" width="256" height="256"/>'))
+        asset.append(ET.fromstring('<material name="floor_check" texture="floor_check" texrepeat="12 12" reflectance="0.05"/>'))
+        asset.append(ET.fromstring('<material name="floor_flat" rgba="0.5 0.5 0.5 1" reflectance="0.0"/>'))
+        custom = ET.SubElement(root, "custom")
+        for c in kb.custom():
+            custom.append(c)
+
+    mount = root.find(".//body[@name='gripper']")
+    cam_spec = None
+    if camera is not None and str(camera).lower() not in ("none", "", "false"):
+        from yam_sim.camera import camera_body_mjcf, camera_spec
+
+        cam_spec = camera_spec(camera)
+        if mount is None:
+            raise ValueError("this arm model has no `gripper` mount body for the wrist camera")
+        mount.append(camera_body_mjcf(cam_spec))
+        if custom is None:
+            custom = ET.SubElement(root, "custom")
+        custom.append(ET.Element("text", {"name": "wrist_camera_model", "data": cam_spec.key}))
+    if tool is not None and str(tool).lower() not in ("none", ""):
+        if str(tool).lower() != "stylus":
+            raise ValueError(f"unknown tool {tool!r}; use 'stylus' or None")
+        st = STYLUS
+        mount.append(ET.fromstring(
+            f"""<body name="stylus" pos="0 0 0">
+                <geom name="stylus_rod" type="capsule" fromto="0 0 {st['z0']} 0 0 {st['tip_z'] - 2 * st['tip_radius']}" size="{st['radius']}"
+                      rgba="0.75 0.75 0.78 1" mass="0.012" contype="0" conaffinity="0" group="2"/>
+                <geom name="stylus_tip_geom" type="sphere" pos="0 0 {st['tip_z'] - st['tip_radius']}" size="{st['tip_radius']}"
+                      rgba="0.05 0.05 0.05 1" mass="0.002" contype="1" conaffinity="{'2' if not self_collision else '3'}"
+                      friction="1.2 0.01 0.0005" condim="3" solref="0.004 1" solimp="0.95 0.99 0.001" group="2"/>
+                <site name="{STYLUS_TIP_SITE}" pos="0 0 {st['tip_z']}" quat="{_SITE_QUAT}" size="0.003" rgba="1 0.5 0 1"/>
+            </body>"""
+        ))
 
     pads = FINGER_PADS.get(gripper, {})
     for body in root.iter("body"):

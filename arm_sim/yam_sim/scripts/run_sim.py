@@ -3,6 +3,7 @@
     pixi run sim                         # sim, linear_4310 gripper
     pixi run sim --gripper crank_4310 --objects
     pixi run sim --control               # start in CONTROL mode
+    pixi run sim --objects keyboard --tool stylus   # keyboard + stylus; C toggles the wrist-camera view
     mjpython -m yam_sim.scripts.run_sim --channel can0   # real arm (Linux host: plain python)
 
 See ``yam_sim/viewer.py`` for the key bindings (they are also shown in the window).
@@ -42,6 +43,7 @@ def main(argv=None) -> int:
             ee_step=args.ee_step,
             max_speed=args.max_speed,
             start_in_control=args.control,
+            scene_kwargs={"camera": args.camera, "tool": args.tool, "objects": args.objects},
         ).run(duration=args.duration)
     finally:
         robot.close()
