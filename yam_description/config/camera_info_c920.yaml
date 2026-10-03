@@ -1,0 +1,33 @@
+# Nominal camera_info for the Logitech C920 wrist webcam at its default 1280x720
+# (camera_calibration_parsers YAML; load with camera_info_manager or
+# camera_calibration_parsers.readCalibration).
+#
+# Generated from arm_sim/yam_sim/models/camera/logitech_c920.yml: an ideal pinhole with
+# fx = fy = (height / 2) / tan(vfov_deg / 2), vfov_deg = 43.307, cx = (width - 1) / 2,
+# cy = (height - 1) / 2, no distortion -- exactly what yam_sim.camera.camera_spec("c920").K()
+# returns and what the sim bridge publishes on /yam_wrist_camera/camera_info. (The `modes` table
+# in the yml rounds fx to 3 decimals.) Regenerate if the yml changes; the test
+# yam_sim_ros/test/test_description_sync.py checks it.
+#
+# These are NOT a calibration of a real camera. Calibrate the real webcam
+# (ros2 run camera_calibration cameracalibrator ...) and use that file for metric work.
+image_width: 1280
+image_height: 720
+camera_name: wrist_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [906.7815160593104, 0.0, 639.5, 0.0, 906.7815160593104, 359.5, 0.0, 0.0, 1.0]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.0, 0.0, 0.0, 0.0, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [906.7815160593104, 0.0, 639.5, 0.0, 0.0, 906.7815160593104, 359.5, 0.0, 0.0, 0.0, 1.0, 0.0]

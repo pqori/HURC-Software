@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /RobotModel1
         - /TF1
+        - /WristCamera1
+        - /Keyboard1
       Splitter Ratio: 0.5
     Tree Height: 410
   - Class: rviz_common/Selection
@@ -75,12 +77,48 @@ Visualization Manager:
           Value: false
         yam_grasp:
           Value: true
+        yam_wrist_camera_optical_frame:
+          Value: true
+        yam_stylus_tip:
+          Value: true
+        yam_keyboard:
+          Value: true
       Marker Scale: 0.3
       Name: TF
       Show Arrows: false
       Show Axes: true
       Show Names: true
       Update Interval: 0
+      Value: true
+    # Wrist webcam image from yam_sim_ros (sim_bridge.launch.py, camera:=c920|c270)
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: WristCamera
+      Normalize Range: true
+      Topic:
+        Depth: 2
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /yam_wrist_camera/image_raw
+      Value: true
+    # Keyboard keycaps (sim_bridge.launch.py objects:=keyboard), latched, pressed keys in orange
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Keyboard
+      Namespaces:
+        base: true
+        keys: true
+        labels: true
+      Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /yam_keyboard/markers
       Value: true
   Enabled: true
   Global Options:
@@ -103,16 +141,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.0
+      Distance: 1.2
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.1
+        X: 0.2
         Y: 0
-        Z: 0.15
+        Z: 0.1
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05
       Invert Z Axis: false

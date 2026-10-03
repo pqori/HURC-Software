@@ -25,6 +25,10 @@
     fixed_base  true: emit a fixed joint <prefix>base_joint from <parent> to
                 <prefix>base.  false: emit no attachment joint; <prefix>base is
                 then a root link (parent and origin are ignored).
+    camera      c920 (default) | c270 | none: Logitech wrist webcam on top of the
+                gripper -> <prefix>wrist_camera_link + <prefix>wrist_camera_optical_frame
+    tool        none (default) | stylus: key-pressing stylus held by the gripper
+                -> <prefix>stylus + <prefix>stylus_tip
 
   Frames (see README.md):
     <prefix>base     arm base, Z up, X towards the arm's front at home
@@ -32,6 +36,8 @@
                      +Z forward (approach), +X right, +Y down (ROS optical style)
     <prefix>tcp      i2rt tcp_site (flange centre)
     <prefix>grasp    i2rt grasp_site (midpoint between the finger tips)
+    <prefix>wrist_camera_optical_frame   camera optical frame (+Z forward, +Y down)
+    <prefix>stylus_tip                   MuJoCo stylus_tip site
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -69,11 +75,20 @@
     </collision>
   </xacro:macro>
 
+  <!-- Wrist webcam + stylus (numbers copied from arm_sim, see that file) -->
+  <xacro:include filename="yam_wrist_tools.urdf.xacro"/>
+
   <xacro:macro name="yam_arm"
-               params="prefix:=yam_ parent:=world *origin gripper:=linear_4310 fixed_base:=true">
+               params="prefix:=yam_ parent:=world *origin gripper:=linear_4310 fixed_base:=true camera:=c920 tool:=none">
 
     <xacro:unless value="${gripper in ['linear_4310', 'crank_4310', 'none']}">
       ${xacro.fatal("yam_arm: gripper must be linear_4310, crank_4310 or none, got '" + str(gripper) + "'")}
+    </xacro:unless>
+    <xacro:unless value="${camera in ['c920', 'c270', 'none']}">
+      ${xacro.fatal("yam_arm: camera must be c920, c270 or none, got '" + str(camera) + "'")}
+    </xacro:unless>
+    <xacro:unless value="${tool in ['none', 'stylus']}">
+      ${xacro.fatal("yam_arm: tool must be none or stylus, got '" + str(tool) + "'")}
     </xacro:unless>
 
     <xacro:if value="${fixed_base}">
@@ -209,6 +224,14 @@
     </xacro:if>
     <xacro:if value="${gripper == 'none'}">
       <xacro:yam_gripper_none prefix="${prefix}"/>
+    </xacro:if>
+
+    <!-- Wrist webcam and stylus, both fixed to the gripper mount (as in the MuJoCo scene) -->
+    <xacro:if value="${camera != 'none'}">
+      <xacro:yam_wrist_camera prefix="${prefix}" model="${camera}"/>
+    </xacro:if>
+    <xacro:if value="${tool == 'stylus'}">
+      <xacro:yam_stylus prefix="${prefix}"/>
     </xacro:if>
   </xacro:macro>
 

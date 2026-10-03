@@ -2,6 +2,7 @@
 
     ros2 launch yam_description view_yam.launch.py
     ros2 launch yam_description view_yam.launch.py gripper:=crank_4310
+    ros2 launch yam_description view_yam.launch.py camera:=c270 tool:=stylus
     ros2 launch yam_description view_yam.launch.py gui:=false   # headless
 
 With gui:=false neither RViz nor the slider GUI is started; a plain
@@ -26,6 +27,8 @@ def generate_launch_description():
     gripper = LaunchConfiguration("gripper")
     prefix = LaunchConfiguration("prefix")
     gui = LaunchConfiguration("gui")
+    camera = LaunchConfiguration("camera")
+    tool = LaunchConfiguration("tool")
 
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("yam_description"), "rviz", "yam.rviz"]
@@ -40,6 +43,8 @@ def generate_launch_description():
             ]),
             " gripper:=", gripper,
             " prefix:=", prefix,
+            " camera:=", camera,
+            " tool:=", tool,
         ]),
         value_type=str,
     )
@@ -77,6 +82,12 @@ def generate_launch_description():
             "prefix", default_value="yam_",
             description="Prefix for all link and joint names "
                         "(rviz/yam.rviz assumes yam_)"),
+        DeclareLaunchArgument(
+            "camera", default_value="c920",
+            description="Wrist webcam: c920 | c270 | none"),
+        DeclareLaunchArgument(
+            "tool", default_value="none",
+            description="Tool held by the gripper: none | stylus"),
         DeclareLaunchArgument(
             "gui", default_value="true",
             description="Start rviz2 and joint_state_publisher_gui"),

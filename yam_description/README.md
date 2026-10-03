@@ -9,7 +9,9 @@ It provides:
 | File | What it is |
 | --- | --- |
 | `urdf/yam_macro.urdf.xacro` | `yam_arm` xacro macro: arm + selectable gripper + TCP/grasp frames |
-| `urdf/yam.urdf.xacro` | Standalone arm on a `world` link (args `gripper`, `prefix`, `ros2_control`, `ros2_control_plugin`) |
+| `urdf/yam_wrist_tools.urdf.xacro` | Wrist webcam (Logitech C920/C270) and stylus macros, numbers copied from `arm_sim` (included by the macro file) |
+| `urdf/yam.urdf.xacro` | Standalone arm on a `world` link (args `gripper`, `prefix`, `camera`, `tool`, `ros2_control`, `ros2_control_plugin`) |
+| `config/camera_info_c920.yaml`, `config/camera_info_c270.yaml` | Nominal wrist-camera intrinsics at 1280x720 (`camera_calibration_parsers` format) |
 | `urdf/yam.ros2_control.xacro` | `yam_ros2_control` macro (position command; position/velocity/effort state) |
 | `config/yam_controllers.yaml` | `joint_state_broadcaster`, `yam_arm_controller` (JTC), `yam_gripper_controller` |
 | `config/joint_limits.yaml` | MoveIt joint limits for a future `yam_moveit_config` |
@@ -24,6 +26,8 @@ source install/setup.bash
 ros2 launch yam_description view_yam.launch.py                       # linear_4310 gripper
 ros2 launch yam_description view_yam.launch.py gripper:=crank_4310
 ros2 launch yam_description view_yam.launch.py gripper:=none
+ros2 launch yam_description view_yam.launch.py camera:=c270 tool:=stylus   # webcam model, stylus
+ros2 launch yam_description view_yam.launch.py camera:=none                # no webcam
 ros2 launch yam_description view_yam.launch.py gui:=false            # headless: no RViz/sliders,
                                                                      # joint_state_publisher sends zeros
 ```
@@ -35,7 +39,9 @@ To get the plain URDF: `xacro urdf/yam.urdf.xacro gripper:=linear_4310 > yam.urd
 With the default `prefix:=yam_`:
 
 * links: `yam_base`, `yam_link1` … `yam_link5`, `yam_gripper`, `yam_tip_left`,
-  `yam_tip_right`, `yam_tcp`, `yam_grasp`
+  `yam_tip_right`, `yam_tcp`, `yam_grasp`, plus `yam_wrist_camera_link` and
+  `yam_wrist_camera_optical_frame` (unless `camera:=none`) and `yam_stylus`,
+  `yam_stylus_tip` (with `tool:=stylus`)
 * joints: `yam_joint1` … `yam_joint6` (revolute), `yam_joint7` (finger,
   prismatic, actuated), `yam_joint8` (other finger, `<mimic>` of joint7),
   plus fixed `yam_base_joint`, `yam_tcp_joint`, `yam_grasp_joint`
@@ -83,6 +89,8 @@ Macro parameters:
 | `parent` | `world` | link the arm base is attached to |
 | `*origin` | (required block) | pose of `<prefix>base` in `parent` |
 | `gripper` | `linear_4310` | `linear_4310`, `crank_4310` or `none` (anything else is a xacro error) |
+| `camera` | `c920` | wrist webcam: `c920`, `c270` or `none` (see "Wrist camera and stylus") |
+| `tool` | `none` | `none` or `stylus` (a key-pressing rod held by the gripper) |
 | `fixed_base` | `true` | `true`: fixed joint `<prefix>base_joint` from `parent`. `false`: no attachment joint, `<prefix>base` is a root link (`parent`/`origin` ignored), e.g. for a free-floating sim spawn |
 
 ## Frame conventions
@@ -109,6 +117,48 @@ Macro parameters:
   and 1 = open onto that range. Each finger mesh reaches across the centreline,
   so the finger link origins pass each other as the gripper opens. That is
   expected.
+
+## Wrist camera and stylus
+
+The team's MuJoCo sim (`arm_sim/`, package `yam_sim`) has a Logitech webcam
+clamped on top of the gripper and an optional stylus for pressing keys. The
+URDF adds the same frames so ROS and the sim agree:
+
+| Frame | Parent | Pose | Meaning |
+| --- | --- | --- | --- |
+| `yam_wrist_camera_link` | `yam_gripper` | xyz = yml `mount.pos` (C920: (0, −0.052, 0.075) m; C270: (0, −0.053, 0.075) m), rpy = (0, −(90° − 25°), 90°) | Camera body, REP 103 body convention: +X forward along the optical axis, +Y left, +Z up in the image. Origin = lens (optical) centre. Carries the dark box + lens visual and the camera mass (C920 0.162 kg, C270 0.075 kg, box inertia). |
+| `yam_wrist_camera_optical_frame` | `yam_wrist_camera_link` | rpy = (−90°, 0, −90°) | ROS optical frame: +Z forward, +X right, +Y down in the image. `frame_id` of `/yam_wrist_camera/image_raw` and `camera_info` (yam_sim_ros). In `yam_gripper` it is rotated −25° about +X (the yml `mount.quat_wxyz`). |
+| `yam_stylus` | `yam_gripper` | identity | Visual rod (Ø 8 mm, z = 0.085 … 0.176 m) + rubber tip sphere (r = 4.5 mm) |
+| `yam_stylus_tip` | `yam_gripper` | xyz = (0, 0, 0.185) m, rpy = (0, 0, 90°) | The MuJoCo `stylus_tip` site: +Z = approach, same x/y axes as `yam_grasp`; 4 cm past the fingertips |
+
+**Relation to the MuJoCo camera.** In the sim, the body `wrist_camera` (and the
+site `wrist_cam_optical`) *is* the optical frame above, and the yml quaternion
+is that frame's orientation in the `gripper` body. The MuJoCo
+`<camera name="wrist_cam">` inside it is the optical frame rotated 180° about
+X, because MuJoCo cameras look along their −Z with +Y up:
+`R_optical = R_mujoco_camera · Rx(π)`. `yam_sim.camera.WristCamera.pose()`
+already returns the optical frame. `yam_sim_ros/test` checks that the TF
+`yam_gripper → yam_wrist_camera_optical_frame` equals the sim's to < 1e-4
+(measured: 6e-17 m, 8e-9 in rotation).
+
+**Keeping it in sync.** The numbers are copied (not read at build time) from
+`arm_sim/yam_sim/models/camera/logitech_c920.yml` / `logitech_c270.yml` and
+from `STYLUS` in `arm_sim/yam_sim/assembly.py`. Each value carries a comment
+naming its source. The camera link rpy uses the yml `tilt_deg`, which is valid
+because both mounts are a pure rotation about gripper +X.
+`yam_sim_ros/test/test_description_sync.py` fails if the URDF or
+`config/camera_info_*.yaml` drift from those files.
+
+**What the real mounting must match.** For the URDF (and therefore any
+camera-to-arm transform computed from TF) to be right, mount the webcam as in
+the yml: lens centre on the gripper's top (−Y) face, 52 mm above the flange
+axis (53 mm for the C270) and 75 mm along the approach axis from the flange,
+centred left/right, with the camera pitched 25° towards the fingers
+about gripper +X and not rolled: the image is upright with the fingers at
+the bottom edge. Measure the real mount and update the yml *and* the property
+block in `yam_wrist_tools.urdf.xacro` if it differs, or do a hand-eye
+calibration. `config/camera_info_*.yaml` are the sim's ideal intrinsics, not
+a calibration; calibrate the real webcam with `camera_calibration`.
 
 ## Where the numbers come from
 

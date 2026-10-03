@@ -5,6 +5,8 @@
     xacro yam.urdf.xacro                         # linear_4310 gripper, prefix yam_
     xacro yam.urdf.xacro gripper:=crank_4310
     xacro yam.urdf.xacro gripper:=none prefix:=arm_
+    xacro yam.urdf.xacro camera:=c270 tool:=stylus   # wrist webcam model / stylus
+    xacro yam.urdf.xacro camera:=none                # no wrist webcam
 
   Set ros2_control:=true to also emit the <ros2_control> block (plugin set by
   ros2_control_plugin, default gz_ros2_control/GazeboSimSystem). It is off by
@@ -13,6 +15,8 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="yam">
   <xacro:arg name="gripper" default="linear_4310"/>
   <xacro:arg name="prefix" default="yam_"/>
+  <xacro:arg name="camera" default="c920"/>   <!-- c920 | c270 | none -->
+  <xacro:arg name="tool" default="none"/>     <!-- none | stylus -->
   <xacro:arg name="ros2_control" default="false"/>
   <xacro:arg name="ros2_control_plugin" default="gz_ros2_control/GazeboSimSystem"/>
 
@@ -21,7 +25,8 @@
 
   <link name="world"/>
 
-  <xacro:yam_arm prefix="$(arg prefix)" parent="world" gripper="$(arg gripper)" fixed_base="true">
+  <xacro:yam_arm prefix="$(arg prefix)" parent="world" gripper="$(arg gripper)" fixed_base="true"
+                camera="$(arg camera)" tool="$(arg tool)">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:yam_arm>
 

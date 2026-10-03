@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<!--
+  Wrist webcam (Logitech C920 / C270) and key-pressing stylus for the YAM gripper.
+  Included by yam_macro.urdf.xacro; use through the yam_arm macro's `camera` and `tool` params.
+
+  SOURCE OF TRUTH. Every number below is copied from the MuJoCo simulator (arm_sim/), so that the
+  URDF and the sim agree on where the camera and the stylus tip are:
+    camera numbers  arm_sim/yam_sim/models/camera/logitech_c920.yml / logitech_c270.yml
+                    (mount.pos, mount.quat_wxyz / mount.tilt_deg, body.*)
+    stylus numbers  arm_sim/yam_sim/assembly.py: STYLUS dict and the `stylus_tip` site
+  If you change one of those files, change the matching property block here.
+  yam_sim_ros/test/test_description_sync.py fails if they drift apart.
+
+  Frames (prefix "yam_"):
+    yam_gripper                    gripper mount: +Z approach, +X right, +Y down
+    yam_wrist_camera_link          camera body, REP 103 "body" convention: +X forward (along the
+                                   optical axis), +Y left, +Z up (in the image). Origin = optical
+                                   centre (the lens), i.e. the same point as the optical frame.
+    yam_wrist_camera_optical_frame ROS optical convention: +Z forward, +X right, +Y down in the
+                                   image. This is the frame_id of /yam_wrist_camera/image_raw and
+                                   camera_info. It equals the MuJoCo body `wrist_camera` / site
+                                   `wrist_cam_optical`; the MuJoCo <camera name="wrist_cam"> is
+                                   this frame rotated 180 deg about X (MuJoCo cameras look along
+                                   -Z with +Y up).
+    yam_stylus                     stylus rod (fixed to the gripper, same orientation)
+    yam_stylus_tip                 the MuJoCo `stylus_tip` site: tip of the rubber end,
+                                   +Z = approach, same x/y axes as yam_grasp (Rz(+90 deg) from
+                                   the gripper frame)
+
+  The yml mount quaternion is the orientation of the OPTICAL frame in the gripper frame. Both
+  models are a pure rotation about gripper +X by -tilt_deg (view pitched towards the fingers), so
+     optical frame in gripper:  rpy = (-tilt, 0, 0)
+     camera link in gripper:    rpy = (0, -(pi/2 - tilt), pi/2)
+     optical in camera link:    rpy = (-pi/2, 0, -pi/2)     (the standard REP 103 rotation)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ===== logitech_c920.yml ===================================================== -->
+  <!-- mount.pos [0.0, -0.052, 0.075]; mount.quat_wxyz [0.97629601, -0.21643961, 0, 0]; tilt_deg 25 -->
+  <xacro:property name="yam_cam_c920_xyz" value="0.0 -0.052 0.075"/>
+  <xacro:property name="yam_cam_c920_tilt_deg" value="25.0"/>
+  <!-- body.size [w, h, d] = [0.094, 0.029, 0.024]; body.center_offset (optical frame) [0, 0, -0.016] -->
+  <xacro:property name="yam_cam_c920_size_w" value="0.094"/>
+  <xacro:property name="yam_cam_c920_size_h" value="0.029"/>
+  <xacro:property name="yam_cam_c920_size_d" value="0.024"/>
+  <xacro:property name="yam_cam_c920_offset_z" value="-0.016"/>
+  <xacro:property name="yam_cam_c920_lens_radius" value="0.009"/>
+  <xacro:property name="yam_cam_c920_lens_length" value="0.004"/>
+  <xacro:property name="yam_cam_c920_mass" value="0.162"/>
+
+  <!-- ===== logitech_c270.yml ===================================================== -->
+  <!-- mount.pos [0.0, -0.053, 0.075]; mount.quat_wxyz [0.97629601, -0.21643961, 0, 0]; tilt_deg 25 -->
+  <xacro:property name="yam_cam_c270_xyz" value="0.0 -0.053 0.075"/>
+  <xacro:property name="yam_cam_c270_tilt_deg" value="25.0"/>
+  <!-- body.size [0.073, 0.032, 0.026]; body.center_offset [0, 0, -0.017] -->
+  <xacro:property name="yam_cam_c270_size_w" value="0.073"/>
+  <xacro:property name="yam_cam_c270_size_h" value="0.032"/>
+  <xacro:property name="yam_cam_c270_size_d" value="0.026"/>
+  <xacro:property name="yam_cam_c270_offset_z" value="-0.017"/>
+  <xacro:property name="yam_cam_c270_lens_radius" value="0.007"/>
+  <xacro:property name="yam_cam_c270_lens_length" value="0.004"/>
+  <xacro:property name="yam_cam_c270_mass" value="0.075"/>
+
+  <!-- ===== assembly.py STYLUS = {radius 0.004, z0 0.085, tip_radius 0.0045, tip_z 0.185} ===== -->
+  <!-- Rod: capsule from z0 to tip_z - 2 tip_radius; tip: sphere at tip_z - tip_radius;
+       site stylus_tip at (0, 0, tip_z), quat 0.70710678 0 0 0.70710678 (= rpy 0 0 pi/2). -->
+  <xacro:property name="yam_stylus_radius" value="0.004"/>
+  <xacro:property name="yam_stylus_z0" value="0.085"/>
+  <xacro:property name="yam_stylus_tip_radius" value="0.0045"/>
+  <xacro:property name="yam_stylus_tip_z" value="0.185"/>
+  <xacro:property name="yam_stylus_mass" value="0.014"/>  <!-- rod 0.012 + tip 0.002 kg -->
+
+  <!-- Webcam on the gripper. model: c920 | c270 -->
+  <xacro:macro name="yam_wrist_camera" params="prefix model">
+    <xacro:yam_wrist_camera_impl prefix="${prefix}" model="${model}"
+        xyz="${yam_cam_c920_xyz if model == 'c920' else yam_cam_c270_xyz}"
+        tilt="${radians(yam_cam_c920_tilt_deg if model == 'c920' else yam_cam_c270_tilt_deg)}"
+        w="${yam_cam_c920_size_w if model == 'c920' else yam_cam_c270_size_w}"
+        h="${yam_cam_c920_size_h if model == 'c920' else yam_cam_c270_size_h}"
+        d="${yam_cam_c920_size_d if model == 'c920' else yam_cam_c270_size_d}"
+        off="${yam_cam_c920_offset_z if model == 'c920' else yam_cam_c270_offset_z}"
+        lens_r="${yam_cam_c920_lens_radius if model == 'c920' else yam_cam_c270_lens_radius}"
+        lens_l="${yam_cam_c920_lens_length if model == 'c920' else yam_cam_c270_lens_length}"
+        mass="${yam_cam_c920_mass if model == 'c920' else yam_cam_c270_mass}"/>
+  </xacro:macro>
+
+  <!-- Geometry is given in the optical frame in the yml (width along optical X, height along
+       optical Y, depth along optical Z); in the camera link frame that is
+       (x, y, z)_link = (z, -x, -y)_optical. -->
+  <xacro:macro name="yam_wrist_camera_impl" params="prefix model xyz tilt w h d off lens_r lens_l mass">
+    <link name="${prefix}wrist_camera_link">
+      <inertial>
+        <origin xyz="${off} 0 0" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia ixx="${mass * (w*w + h*h) / 12.0}" ixy="0" ixz="0"
+                 iyy="${mass * (d*d + h*h) / 12.0}" iyz="0"
+                 izz="${mass * (d*d + w*w) / 12.0}"/>
+      </inertial>
+      <visual>
+        <origin xyz="${off} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${d} ${w} ${h}"/></geometry>
+        <material name="${prefix}wrist_camera_material"><color rgba="0.06 0.06 0.07 1"/></material>
+      </visual>
+      <!-- lens ends 1 mm behind the optical centre, as in yam_sim.camera.camera_body_mjcf -->
+      <visual>
+        <origin xyz="${-0.001 - lens_l / 2.0} 0 0" rpy="0 ${pi/2} 0"/>
+        <geometry><cylinder radius="${lens_r}" length="${lens_l}"/></geometry>
+        <material name="${prefix}wrist_camera_lens_material"><color rgba="0.02 0.02 0.03 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="${off} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${d} ${w} ${h}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}wrist_camera_joint" type="fixed">
+      <origin xyz="${xyz}" rpy="0 ${-(pi/2 - tilt)} ${pi/2}"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}wrist_camera_link"/>
+    </joint>
+    <link name="${prefix}wrist_camera_optical_frame"/>
+    <joint name="${prefix}wrist_camera_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+      <parent link="${prefix}wrist_camera_link"/>
+      <child link="${prefix}wrist_camera_optical_frame"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Stylus held along the gripper axis, with its tip frame. -->
+  <xacro:macro name="yam_stylus" params="prefix">
+    <xacro:property name="rod_end" value="${yam_stylus_tip_z - 2 * yam_stylus_tip_radius}"/>
+    <link name="${prefix}stylus">
+      <inertial>
+        <origin xyz="0 0 ${(yam_stylus_z0 + yam_stylus_tip_z) / 2.0}" rpy="0 0 0"/>
+        <mass value="${yam_stylus_mass}"/>
+        <inertia ixx="${yam_stylus_mass * (yam_stylus_tip_z - yam_stylus_z0)**2 / 12.0}" ixy="0" ixz="0"
+                 iyy="${yam_stylus_mass * (yam_stylus_tip_z - yam_stylus_z0)**2 / 12.0}" iyz="0"
+                 izz="${yam_stylus_mass * yam_stylus_radius**2 / 2.0}"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${(yam_stylus_z0 + rod_end) / 2.0}" rpy="0 0 0"/>
+        <geometry><cylinder radius="${yam_stylus_radius}" length="${rod_end - yam_stylus_z0}"/></geometry>
+        <material name="${prefix}stylus_material"><color rgba="0.75 0.75 0.78 1"/></material>
+      </visual>
+      <visual>
+        <origin xyz="0 0 ${yam_stylus_tip_z - yam_stylus_tip_radius}" rpy="0 0 0"/>
+        <geometry><sphere radius="${yam_stylus_tip_radius}"/></geometry>
+        <material name="${prefix}stylus_tip_material"><color rgba="0.05 0.05 0.05 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${yam_stylus_tip_z - yam_stylus_tip_radius}" rpy="0 0 0"/>
+        <geometry><sphere radius="${yam_stylus_tip_radius}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}stylus_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}stylus"/>
+    </joint>
+    <link name="${prefix}stylus_tip"/>
+    <joint name="${prefix}stylus_tip_joint" type="fixed">
+      <origin xyz="0 0 ${yam_stylus_tip_z}" rpy="0 0 ${pi/2}"/>
+      <parent link="${prefix}gripper"/>
+      <child link="${prefix}stylus_tip"/>
+    </joint>
+  </xacro:macro>
+
+</robot>
