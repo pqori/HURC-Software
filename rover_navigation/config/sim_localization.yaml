@@ -1,0 +1,44 @@
+# Simulation-only local EKF (robot_localization). Publishes odom -> base_link
+# and /odometry/filtered. The diff_drive_controller keeps enable_odom_tf false,
+# so this node is the only odom -> base_link publisher in sim.
+# map -> odom is a static identity published by sim_nav.launch.py (no GPS,
+# no map server in sim). The hardware dual-EKF setup stays in localization.yaml.
+ekf_local:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 30.0
+    sensor_timeout: 0.5
+    two_d_mode: true
+    publish_tf: true
+    print_diagnostics: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # Wheel odometry from gz_ros2_control's diff_drive_controller.
+    # Fuse body velocities only (vx, vy, vyaw); vy is ~0 for a diff drive and
+    # acts as the non-holonomic constraint. Pose is NOT fused.
+    odom0: /rover_drive_controller/odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # Gazebo IMU on the ZED mount. Yaw rate only. The topic does not exist in
+    # the plain empty world; robot_localization just waits for it.
+    imu0: /Front_Zed/zed_node/imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+    imu0_remove_gravitational_acceleration: true

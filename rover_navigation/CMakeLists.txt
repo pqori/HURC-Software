@@ -28,4 +28,12 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+# Executables for `ros2 run rover_navigation <script>`.
+install(
+  PROGRAMS
+    scripts/go_to_pose.py
+    scripts/run_nav_test.sh
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
