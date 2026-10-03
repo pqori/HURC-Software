@@ -1,0 +1,71 @@
+# ros_gz_bridge parameter_bridge config for the simulated ZED 2i.
+# Gazebo topics come from the <sensor> blocks in rover_description/urdf/rover.urdf.xacro;
+# ROS names match the real zed_wrapper (camera name Front_Zed). All GZ_TO_ROS.
+# Frame ids are set in the URDF with <gz_frame_id>: images/camera_info use the
+# optical frames; the depth image, depth camera_info and point cloud use
+# Front_Zed_left_camera_frame because Gazebo emits the cloud x-forward.
+# Depth, depth camera_info and the point cloud are 320x180 at 10 Hz; the RGB
+# images are 640x360 at 15 Hz.
+
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/left/image_rect_color"
+  gz_topic_name: "/zed/left/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/left/camera_info"
+  gz_topic_name: "/zed/left/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/right/image_rect_color"
+  gz_topic_name: "/zed/right/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/right/camera_info"
+  gz_topic_name: "/zed/right/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/depth/depth_registered"
+  gz_topic_name: "/zed/rgbd/depth_image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/depth/camera_info"
+  gz_topic_name: "/zed/rgbd/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/point_cloud/cloud_registered"
+  gz_topic_name: "/zed/rgbd/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS
+  lazy: false
+
+- ros_topic_name: "/Front_Zed/zed_node/imu/data"
+  gz_topic_name: "/zed/imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
+  lazy: false

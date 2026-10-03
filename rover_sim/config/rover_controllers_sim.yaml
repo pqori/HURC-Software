@@ -1,0 +1,119 @@
+# Simulation overlay of rover_description/config/rover_controllers.yaml.
+# Identical except for the diff drive wheel geometry, which here matches the
+# rover's URDF/meshes so /rover_drive_controller/odom is metrically correct in
+# Gazebo:
+#   wheel_radius 0.096 m: the wheel STL meshes (meshes/coarse/*_Wheel.STL)
+#     span +-0.096 m in the wheel plane (bounding box), i.e. diameter 0.192 m.
+#   wheel_separation 0.75 m: wheel tread centres (mesh mid-width, 0.06075 m
+#     out from each wheel joint origin along its axle) transformed through
+#     base_to_chassis and the *_Drive joint origins sit at y = +-0.3748 m in
+#     base_link, so left-to-right centre distance = 0.7496 m.
+# (The hardware yaml keeps 0.2 / 0.8, which do not match the model.)
+controller_manager:
+  ros__parameters:
+    update_rate: 1000  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    rover_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+    
+    rover_arm_controller:
+      type: position_controllers/JointGroupPositionController #joint_trajectory_controller/JointTrajectoryController
+
+    rover_gripper_controller:
+      type: position_controllers/JointGroupPositionController
+
+rover_drive_controller:
+  ros__parameters:
+    left_wheel_names: ["FL_Drive", "BL_Drive"]
+    right_wheel_names: ["FR_Drive", "BR_Drive"]
+
+    wheel_separation: 0.75   # sim: measured from the URDF, see header
+    # wheels_per_side was removed in ros2_controllers 4.x (Jazzy); the
+    # controller now reads every wheel listed in *_wheel_names directly.
+    wheel_radius: 0.096      # sim: wheel mesh radius, see header
+
+    # wheel_separation_multiplier: 1.0
+    # left_wheel_radius_multiplier: 1.0
+    # right_wheel_radius_multiplier: 1.0
+
+    # use_stamped_vel was removed in ros2_controllers 4.x (Jazzy): the controller
+    # now only accepts geometry_msgs/TwistStamped on ~/cmd_vel
+    # (/rover_drive_controller/cmd_vel); the cmd_vel_unstamped topic is gone.
+
+    publish_rate: 50.0
+    # odom_frame_id: odom
+    base_frame_id: base_link
+
+    position_feedback: false
+    pose_covariance_diagonal : [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+
+    # open_loop: true
+    enable_odom_tf: false
+
+    # cmd_vel_timeout: 0.5
+    #publish_limited_velocity: true
+    #velocity_rolling_window_size: 10
+
+    # Velocity and acceleration limits
+    # Whenever a min_* is unspecified, default to -max_*
+    # linear.x.has_velocity_limits: true
+    # linear.x.has_acceleration_limits: true
+    # linear.x.has_jerk_limits: false
+    # linear.x.max_velocity: 1.0
+    # linear.x.min_velocity: -1.0
+    # linear.x.max_acceleration: 1.0
+    # linear.x.max_jerk: 0.0
+    # linear.x.min_jerk: 0.0
+
+    # angular.z.has_velocity_limits: true
+    # angular.z.has_acceleration_limits: true
+    # angular.z.has_jerk_limits: false
+    # angular.z.max_velocity: 1.0
+    # angular.z.min_velocity: -1.0
+    # angular.z.max_acceleration: 1.0
+    # angular.z.min_acceleration: -1.0
+    # angular.z.max_jerk: 0.0
+    # angular.z.min_jerk: 0.0
+
+rover_arm_controller:
+  ros__parameters:
+    state_publish_rate: 10.0
+
+    constraints:
+      goal_time: 0.5
+
+    joints:
+      - Arm_Base_Rotate
+      - Arm_Shoulder
+      - Arm_Elbow_Tilt
+      - Arm_Elbow_Rotate
+      - Arm_Wrist_Tilt
+      - Arm_Wrist_Rotate
+    
+    command_interfaces:
+      - position
+      # - velocity
+    
+    state_interfaces:
+      - position
+      - velocity
+
+rover_gripper_controller:
+  ros__parameters:
+    state_publish_rate: 10.0
+
+    constraints:
+      goal_time: 0.5
+
+    joints:
+      - Arm_Gripper_Clamp
+    
+    command_interfaces:
+      - position
+    
+    state_interfaces:
+      - position

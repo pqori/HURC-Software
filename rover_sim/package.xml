@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>rover_sim</name>
+  <version>0.1.0</version>
+  <description>
+    Gazebo Harmonic simulation of the rover for the Nav2 obstacle-avoidance
+    demo: obstacle world, simulated ZED 2i sensor bridge, sim controller
+    parameters and the sim launch file.
+  </description>
+  <maintainer email="rover@example.com">Rover Team</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>rover_description</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
