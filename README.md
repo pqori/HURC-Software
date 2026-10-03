@@ -49,6 +49,30 @@ ros2 action send_goal /yam_arm_controller/follow_joint_trajectory control_msgs/a
                  points: [{positions: [0.5, 1.0, 0.8, -0.3, 0.4, 0.6], time_from_start: {sec: 3}}]}}"
 ```
 
+### Wrist camera, keyboard and key detection
+
+The sim carries a Logitech webcam on top of the gripper (C920 by default, C270
+selectable; mount pose and intrinsics live in `arm_sim/yam_sim/models/camera/*.yml`
+and are shared with the ROS packages) and can place a pressable full-size
+keyboard in front of the arm. Each key is a named body with 4 mm of spring
+travel, so presses register and every key's pose is known. The gripper can hold
+a stylus for single-key presses.
+
+```bash
+cd arm_sim
+pixi run sim -- --objects keyboard --tool stylus      # viewer; press C to look through the wrist camera
+pixi run press -- "hello"                             # type on the sim keyboard via IK and verify it
+pixi run dataset -- --n 2000 --out ../key_dataset     # labelled wrist-camera images (YOLO + COCO, keys as classes)
+pixi run -e train train -- --data ../key_dataset/data.yaml --epochs 100   # Ultralytics YOLO, optional env
+pixi run -e train detect -- --weights runs/keys/*/weights/best.pt --sim    # or --webcam 0 on the real camera
+```
+
+Labels come from projecting each keycap through the camera model and checking
+visibility against the segmentation render, so they are exact. The sim keycaps
+have no legends and the camera is an ideal pinhole, so plan to fine-tune on
+real frames from the mounted webcam. See the "Wrist camera and keyboard"
+section of [`arm_sim/README.md`](arm_sim/README.md).
+
 ### Sim-to-real
 
 Every script in `arm_sim/` takes `--sim` (default) or `--channel can0`. On the
